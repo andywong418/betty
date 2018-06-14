@@ -1,7 +1,7 @@
 import {combineReducers} from 'redux';
 import {routerReducer} from 'react-router-redux';
 
-function rootReducer(state = {name: 'Horizons'}, action) {
+function rootReducer(state = {name: 'Betty'}, action) {
     switch (action.type) {
         default:
             return state;
