@@ -9,7 +9,8 @@
     "frontend": "webpack -d --watch",
     "backend": "nodemon server.js",
     "start": "npm run build && NODE_ENV=production node server.js",
-    "test": "mocha --compilers js:babel-core/register ./test/**/*.js --require ignore-styles"
+    "lint": "eslint .",
+    "test": "npm run lint && mocha --compilers js:babel-core/register ./test/**/*.js --require ignore-styles"
   },
   "author": "",
   "license": "ISC",
@@ -47,6 +48,11 @@
     "babel-eslint": "^7.2.2",
     "concurrently": "^3.5.0",
     "eslint": "^3.19.0",
+    "eslint-config-standard": "^11.0.0",
+    "eslint-plugin-import": "^2.12.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.8.0",
+    "eslint-plugin-standard": "^3.1.0",
     "eslint-loader": "^1.9.0",
     "eslint-plugin-jsx-a11y": "^4.0.0",
     "eslint-plugin-react": "^6.10.3",
