@@ -5,9 +5,9 @@ const PORT = process.env.PORT || 3002
 const api = require('./backend/routes')
 const RippleAPI = require('ripple-lib').RippleAPI
 const WebSocket = require('ws')
-if (typeof localStorage === "undefined" || localStorage === null) {
-  var LocalStorage = require('node-localstorage').LocalStorage;
-  localStorage = new LocalStorage('./scratch-' + process.env.PORT );
+if (typeof localStorage === 'undefined' || localStorage === null) {
+  var LocalStorage = require('node-localstorage').LocalStorage
+  localStorage = new LocalStorage('./scratch-' + process.env.PORT)
 }
 const wss = new WebSocket.Server({ port: Number(process.env.WEB_SOCKET) || 8002 })
 // Put logic for host key gen in here.
@@ -15,10 +15,8 @@ const wss = new WebSocket.Server({ port: Number(process.env.WEB_SOCKET) || 8002 
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 // Change to wss://s1.ripple.com:443 for production
 
-
 wss.on('connection', ws => {
   ws.on('message', message => {
-
     message = JSON.parse(message)
     if (message.keyGenInitiate) {
       rippleAPI.connect().then(() => {
@@ -46,12 +44,11 @@ wss.on('connection', ws => {
         })
         ws.on('open', () => {
           ws.send(JSON.stringify({
-            "shareAddressWithPeer": true,
-            "address": address,
-            "hostList": newHostList
+            'shareAddressWithPeer': true,
+            'address': address,
+            'hostList': newHostList
           }))
           ws.close()
-
         })
       })
       console.log(localStorage.getItem('sharedWalletAddress'))
@@ -71,7 +68,7 @@ wss.on('connection', ws => {
 app.use(express.static(path.join(__dirname, 'public')))
 app.use('*', (request, response, next) => {
   const multiSignContract = localStorage.getItem('sharedWalletAddress')
-  if(multiSignContract) {
+  if (multiSignContract) {
     next()
   } else {
     response.send('NO XRP ACCOUNT CREATED')
