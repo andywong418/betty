@@ -5,10 +5,10 @@ const PORT = process.env.PORT || 3002
 const api = require('./backend/routes')
 const RippleAPI = require('ripple-lib').RippleAPI
 const WebSocket = require('ws')
-if (typeof localStorage === 'undefined' || localStorage === null) {
-  var LocalStorage = require('node-localstorage').LocalStorage
-  localStorage = new LocalStorage('./scratch-' + process.env.PORT)
-}
+const broker = require('./codule/n-squared')()
+const levelDB = require('./BettyDB')
+const BettyDB = new levelDB()
+
 const wss = new WebSocket.Server({ port: Number(process.env.WEB_SOCKET) || 8002 })
 // Put logic for host key gen in here.
 
@@ -17,14 +17,18 @@ const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 
 wss.on('connection', ws => {
   ws.on('message', message => {
-    message = JSON.parse(message)
+    try {
+      message = JSON.parse(message)
+    } catch (err) {
+    }
+    
     if (message.keyGenInitiate) {
       rippleAPI.connect().then(() => {
         const { address, secret } = rippleAPI.generateAddress()
-        localStorage.setItem('keypair', JSON.stringify({
+        BettyDB.set('keypair', {
           address,
           secret
-        }))
+        })
         ws.send(JSON.stringify({
           address,
           walletAddress: true
@@ -33,11 +37,13 @@ wss.on('connection', ws => {
     }
     if (message.sendVerifiedSharedWallet) {
       const {address, hostList} = message
-      localStorage.setItem('sharedWalletAddress', address)
-      localStorage.setItem('hostList', JSON.stringify({
+      console.log('keygen address', address)
+      BettyDB.set('sharedWalletAddress', address)
+      BettyDB.set('hostList', {
         hostList
-      }))
+      })
       hostList.forEach(hostURL => {
+        // Propagate address to every thing sent in this peerList.
         const ws = new WebSocket(hostURL)
         const newHostList = hostList.filter(host => {
           return host !== hostURL
@@ -51,24 +57,24 @@ wss.on('connection', ws => {
           ws.close()
         })
       })
-      console.log(localStorage.getItem('sharedWalletAddress'))
-      console.log(localStorage.getItem('hostList'))
-      // Propagate address to every thing sent in this peerList.
+      
     }
     if (message.shareAddressWithPeer) {
       const {address, hostList} = message
-      localStorage.setItem('sharedWalletAddress', address)
-      localStorage.setItem('hostList', JSON.stringify({
+      console.log('peer address', address)
+      BettyDB.set('sharedWalletAddress', address)
+      BettyDB.set('hostList', {
         hostList
-      }))
+      })
     }
   })
 })
 
 app.use(express.static(path.join(__dirname, 'public')))
-app.use('*', (request, response, next) => {
-  const multiSignContract = localStorage.getItem('sharedWalletAddress')
-  if (multiSignContract) {
+app.use('*', async (request, response, next) => {
+  const multiSignContract = await BettyDB.get('sharedWalletAddress')
+  console.log('multiSign', multiSignContract)
+  if(multiSignContract) {
     next()
   } else {
     response.send('NO XRP ACCOUNT CREATED')
