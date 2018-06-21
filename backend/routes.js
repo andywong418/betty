@@ -32,6 +32,9 @@ router.get('/team', async (req, res) => {
   })
 })
 
+router.get('/wallet-address', async (req, res) => {
+  res.send(req.walletAddress)
+})
 router.get('/bets', (req, res) => {
   // Returns lists of bets made which are stored in localStorage.
 })

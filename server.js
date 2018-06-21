@@ -6,8 +6,9 @@ const api = require('./backend/routes')
 const RippleAPI = require('ripple-lib').RippleAPI
 const WebSocket = require('ws')
 const broker = require('./codule/n-squared')()
-const levelDB = require('./BettyDB')
-const BettyDB = new levelDB()
+const BettyDB = require('./backend/common/BettyDB')
+
+
 
 const wss = new WebSocket.Server({ port: Number(process.env.WEB_SOCKET) || 8002 })
 // Put logic for host key gen in here.
@@ -36,8 +37,7 @@ wss.on('connection', ws => {
     }
     if (message.sendVerifiedSharedWallet) {
       const {address, hostList} = message
-      console.log('keygen address', address)
-      BettyDB.set('sharedWalletAddress', address)
+      BettyDB.set('sharedWalletAddress', { address })
       BettyDB.set('hostList', {
         hostList
       })
@@ -59,8 +59,7 @@ wss.on('connection', ws => {
     }
     if (message.shareAddressWithPeer) {
       const {address, hostList} = message
-      console.log('peer address', address)
-      BettyDB.set('sharedWalletAddress', address)
+      BettyDB.set('sharedWalletAddress', { address })
       BettyDB.set('hostList', {
         hostList
       })
@@ -71,8 +70,8 @@ wss.on('connection', ws => {
 app.use(express.static(path.join(__dirname, 'public')))
 app.use('*', async (request, response, next) => {
   const multiSignContract = await BettyDB.get('sharedWalletAddress')
-  console.log('multiSign', multiSignContract)
   if (multiSignContract) {
+    request.walletAddress = multiSignContract
     next()
   } else {
     response.send('NO XRP ACCOUNT CREATED')
