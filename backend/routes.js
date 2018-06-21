@@ -45,7 +45,7 @@ router.post('/bet-info', async (req, res) => {
   // Check valid address, otherwise return error
   rippleAPI.connect().then(() => {
     return rippleAPI.getAccountInfo(req.body.publicKey)
-  }).then( async accountInfo => {
+  }).then(async accountInfo => {
     const destinationTag = hash(req.body)
     // TODO: Add all info into DB into pending DB.
     req.body['destinationTag'] = destinationTag
