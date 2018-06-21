@@ -40,15 +40,16 @@ router.get('/bets', (req, res) => {
 })
 
 router.post('/bet-info', async (req, res) => {
-  // Mark a bet as paid or not. Also add whether or not it's paired and refunded.
+  // Mark a bet as paid or not. Also add whether or not it's paired.
   // Return destination tag and address to send to user.
   // Check valid address, otherwise return error
   rippleAPI.connect().then(() => {
     return rippleAPI.getAccountInfo(req.body.publicKey)
-  }).then(accountInfo => {
+  }).then( async accountInfo => {
     const destinationTag = hash(req.body)
     // TODO: Add all info into DB into pending DB.
     req.body['destinationTag'] = destinationTag
+    await BettyDB.addPendingBet(destinationTag, req.body)
     res.send(req.body)
   }).catch(err => {
     console.log('err', err)

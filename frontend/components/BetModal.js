@@ -33,7 +33,8 @@ class BetModal extends React.Component {
     this.props.postBetInfo({
       publicKey,
       bettingTeam,
-      matchId: this.props.match.id
+      matchId: this.props.match.id,
+      email: this.state.email
     })
   }
 
