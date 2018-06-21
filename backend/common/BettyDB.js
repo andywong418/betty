@@ -7,20 +7,34 @@ if (process.env.PORT) {
 const db = level(dbUrl, { valueEncoding: 'json' })
 const MATCHES_KEY = 'matches'
 const TRANSACTIONS_KEY = 'transactions'
+const BETS_KEY = 'bets'
+const PENDING_BETS_KEY = 'pendingBets'
 
 class BettyDB {
   constructor () {
     this.db = db
   }
 
+  async getAllBets () {
+    return this.get(BETS_KEY, {})
+  }
+
   async getAllMatches () {
-    const matches = await this.get(MATCHES_KEY, {})
-    return matches
+    return this.get(MATCHES_KEY, {})
   }
 
   async getMatch (matchId) {
     const matches = await this.getAllMatches()
     return matches[matchId]
+  }
+
+  async getAllPendingBets () {
+    return this.get(PENDING_BETS_KEY, {})
+  }
+
+  async getPendingBet (betId) {
+    const pendingBets = await this.getAllPendingBets()
+    return pendingBets[betId]
   }
 
   async getAllTransactions () {
@@ -44,11 +58,35 @@ class BettyDB {
     await this.set(MATCHES_KEY, matches)
   }
 
-  async addBet (matchId, betObj) {
+  async addBet (betId, betObj) {
+    // add bet to match obj
+    const matchId = betObj.matchId
     const match = await this.getMatch(matchId)
-    const bets = match.bets
-    match.bets = [...bets, ...[betObj]]
-    await this.addMatch(matchId, match)
+    match.bets[betId] = betObj
+    // add bet to bets list
+    const bets = await this.get(BETS_KEY, {})
+    bets[betId] = betObj
+    await this.set(BETS_KEY, bets)
+  }
+
+  async addPendingBet (betId, betObj) {
+    const pendingBets = await this.get(PENDING_BETS_KEY, {})
+    pendingBets[betId] = betObj
+    await this.set(PENDING_BETS_KEY, pendingBets)
+  }
+
+  async removePendingBet (betId) {
+    const pendingBets = await this.get(PENDING_BETS_KEY, {})
+    delete pendingBets[betId]
+    await this.set(PENDING_BETS_KEY, pendingBets)
+  }
+
+  async del (key) {
+    try {
+      this.db.del(key)
+    } catch (err) {
+      throw err
+    }
   }
 
   async get (key, defaultValue = '') {
