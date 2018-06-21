@@ -26,42 +26,49 @@ class MatchList extends React.Component {
     })
   }
 
+  closeModal () {
+    this.setState({
+      showModal: false,
+      matchPicked: null
+    })
+  }
+
   render () {
     return (
       <div className='container' style ={{marginTop: '20px'}}>
-      <div className='row'>
-        {this.props.matchesNotPlayed.length > 0 ? this.props.matchesNotPlayed.slice(0, 12).map(match => {
-          return (
-            <div className='match-item-container col-4' key={match.id}>
-              <div className='match-item' key={match.team1 + match.team2}>
-                <p> 
-                  <span>MatchTime: </span> 
-                  <span style={{color: '#2ecc71'}}> {dateTime(match.matchTime)} </span> 
-                </p>
-                <span className='match-teams'>
-                  <span>
-                  <strong>{match.team1}</strong>
-                  </span>
+        <div className='row'>
+          {this.props.matchesNotPlayed.length > 0 ? this.props.matchesNotPlayed.slice(0, 12).map(match => {
+            return (
+              <div className='match-item-container col-4' key={match.id}>
+                <div className='match-item' key={match.team1 + match.team2}>
+                  <p>
+                    <span>MatchTime: </span>
+                    <span style={{color: '#2ecc71'}}> {dateTime(match.matchTime)} </span>
+                  </p>
+                  <span className='match-teams'>
+                    <span>
+                      <strong>{match.team1}</strong>
+                    </span>
 
-                  <span>
+                    <span>
                     vs
+                    </span>
+
+                    <span>
+                      <strong> {match.team2} </strong>
+                    </span>
                   </span>
 
-                  <span>
-                    <strong> {match.team2} </strong>
-                  </span>
-                </span>
-
-                <div style= {{textAlign: 'center', marginTop: '20px'}}>
-                  <span className='btn btn-primary' onClick={() => {this.showMatchToBet(match)}}> Place bet </span>
+                  <div style= {{textAlign: 'center', marginTop: '20px'}}>
+                    <span className='btn btn-primary' onClick={() => { this.showMatchToBet(match) }}> Place bet </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )
-        }) : <ErrorMessage />
-        }
+            )
+          }) : <ErrorMessage />
+          }
         </div>
-        {this.state.showModal && this.state.matchPicked ? <BetModal match={this.state.matchPicked} /> : null }
+        {this.state.showModal && this.state.matchPicked ? <BetModal match={this.state.matchPicked} sharedAddress = {this.props.sharedAddress} closeModal= {() => this.closeModal()} /> : null }
       </div>
     )
   }

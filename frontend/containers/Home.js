@@ -4,7 +4,7 @@ import { connect } from 'react-redux'
 import { Link } from 'react-router-dom'
 import MatchList from '../components/MatchList'
 import Footer from '../components/Footer'
-import { getMatches } from '../actions/index'
+import { getMatches, getAddress } from '../actions/index'
 
 class Home extends React.Component {
   constructor (props) {
@@ -16,6 +16,7 @@ class Home extends React.Component {
 
   componentDidMount () {
     this.props.getMatches()
+    this.props.getAddress()
   }
   render () {
     return (
@@ -30,7 +31,7 @@ class Home extends React.Component {
           </div>
           <p>The first decentralized betting platform for the Russian World Cup built on Codius </p>
         </div>
-        <MatchList matchesNotPlayed={this.props.matchesNotPlayed} matchesPlayed={this.props.matchesPlayed} />
+        <MatchList matchesNotPlayed={this.props.matchesNotPlayed} matchesPlayed={this.props.matchesPlayed} sharedAddress={this.props.address}/>
         <Footer />
       </div>
     )
@@ -40,13 +41,15 @@ const mapStateToProps = (state) => {
   return {
     name: state.rootReducer.name,
     matchesNotPlayed: state.matchReducer.matchesNotPlayed,
-    matchesPlayed: state.matchReducer.matchesPlayed
+    matchesPlayed: state.matchReducer.matchesPlayed,
+    address: state.addressReducer.address
   }
 }
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    getMatches: () => dispatch(getMatches())
+    getMatches: () => dispatch(getMatches()),
+    getAddress: () => dispatch(getAddress())
   }
 }
 export default connect(mapStateToProps, mapDispatchToProps)(Home)

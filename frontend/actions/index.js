@@ -10,3 +10,11 @@ export const getMatches = () => async (dispatch) => {
     payload: resp.data.matches
   })
 }
+
+export const getAddress = () => async (dispatch) => {
+  const resp = await axios.get('/api/wallet-address')
+  dispatch({
+    type: types.FETCH_ADDRESS,
+    payload: resp.data
+  })
+}

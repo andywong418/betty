@@ -47,7 +47,11 @@ h1 {
 }
 .modal {
   display: block;
+  .modal-dialog {
+    max-width: 700px;
+  }
 }
+
 .cover {
   position: fixed;
   top: 0;
