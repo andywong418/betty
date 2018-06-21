@@ -7,6 +7,7 @@ const BettyDB = require('./common/BettyDB')
 const hash = require('object-hash')
 const RippleAPI = require('ripple-lib').RippleAPI
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
+const broker = require('../codule/n-squared')()
 
 router.get('/matches', async (req, res) => {
   const url = oracle + '/games'

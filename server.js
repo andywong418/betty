@@ -6,7 +6,6 @@ const PORT = process.env.PORT || 3002
 const api = require('./backend/routes')
 const RippleAPI = require('ripple-lib').RippleAPI
 const WebSocket = require('ws')
-const broker = require('./codule/n-squared')()
 const BettyDB = require('./backend/common/BettyDB')
 const wss = new WebSocket.Server({ port: Number(process.env.WEB_SOCKET) || 8002 })
 // Put logic for host key gen in here.
