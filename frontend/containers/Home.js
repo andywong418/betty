@@ -4,7 +4,7 @@ import { connect } from 'react-redux'
 import { Link } from 'react-router-dom'
 import MatchList from '../components/MatchList'
 import Footer from '../components/Footer'
-import { getMatches, getAddress } from '../actions/index'
+import { getMatches, getAddress, postBetInfo } from '../actions/index'
 
 class Home extends React.Component {
   constructor (props) {
@@ -31,7 +31,7 @@ class Home extends React.Component {
           </div>
           <p>The first decentralized betting platform for the Russian World Cup built on Codius </p>
         </div>
-        <MatchList matchesNotPlayed={this.props.matchesNotPlayed} matchesPlayed={this.props.matchesPlayed} sharedAddress={this.props.address}/>
+        <MatchList matchesNotPlayed={this.props.matchesNotPlayed} matchesPlayed={this.props.matchesPlayed} sharedAddress={this.props.address} />
         <Footer />
       </div>
     )

@@ -46,9 +46,21 @@ h1 {
   padding: 10px;
 }
 .modal {
-  display: block;
+  display: flex;
+  align-items: center;
   .modal-dialog {
+    flex: 1;
     max-width: 700px;
+  }
+  .bet-info {
+    margin-top: 10px;
+    li {
+      text-align: left;
+      font-weight: bold
+    }
+    li span {
+      color: #2ecc71;
+    }
   }
 }
 
@@ -59,7 +71,7 @@ h1 {
   width: 100%;
   height: 100%;
   z-index: 10;
-  background-color: rgba(0,0,0,0.5); /*dim the background*/
+  background-color: rgba(0,0,0,0.8); /*dim the background*/
 }
 
 .match-item {
@@ -76,6 +88,12 @@ h1 {
     flex: 1
   }
 }
+
+.betInfoError {
+  color: red
+}
+
+
 footer {
   display: flex;
   height: 200px;
