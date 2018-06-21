@@ -1,10 +1,7 @@
 import React from 'react'
 import ErrorMessage from './ErrorMessage'
 import BetModal from './BetModal'
-function dateTime (dateStr) {
-  const d = new Date(dateStr)
-  return d.toDateString()
-}
+import dateTime from '../utils/DateString'
 class MatchList extends React.Component {
   constructor (props) {
     super(props)
@@ -43,7 +40,7 @@ class MatchList extends React.Component {
                 <div className='match-item' key={match.team1 + match.team2}>
                   <p>
                     <span>MatchTime: </span>
-                    <span style={{color: '#2ecc71'}}> {dateTime(match.matchTime)} </span>
+                    <span style={{color: '#2ecc71'}}> {dateTime(match.matchTime)}  </span>
                   </p>
                   <span className='match-teams'>
                     <span>

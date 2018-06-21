@@ -18,3 +18,11 @@ export const getAddress = () => async (dispatch) => {
     payload: resp.data
   })
 }
+
+export const postBetInfo = (betObj) => async (dispatch) => {
+  const resp = await axios.post('/api/bet-info', betObj)
+  dispatch({
+    type: types.POST_BET_INFO,
+    payload: resp.data
+  })
+}

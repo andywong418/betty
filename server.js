@@ -1,15 +1,12 @@
 const path = require('path')
 const express = require('express')
 const app = express()
+const bodyParser = require('body-parser')
 const PORT = process.env.PORT || 3002
 const api = require('./backend/routes')
 const RippleAPI = require('ripple-lib').RippleAPI
 const WebSocket = require('ws')
-const broker = require('./codule/n-squared')()
 const BettyDB = require('./backend/common/BettyDB')
-
-
-
 const wss = new WebSocket.Server({ port: Number(process.env.WEB_SOCKET) || 8002 })
 // Put logic for host key gen in here.
 
@@ -68,6 +65,8 @@ wss.on('connection', ws => {
 })
 
 app.use(express.static(path.join(__dirname, 'public')))
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 app.use('*', async (request, response, next) => {
   const multiSignContract = await BettyDB.get('sharedWalletAddress')
   if (multiSignContract) {
