@@ -23,9 +23,18 @@ class BettyDB {
     return this.get(MATCHES_KEY, {})
   }
 
+  async getBet (betId) {
+    const bets = await this.get(BETS_KEY, {})
+    const bet = bets[betId]
+    if (!bet) { return {} }
+    return bet
+  }
+
   async getMatch (matchId) {
     const matches = await this.getAllMatches()
-    return matches[matchId]
+    const match = matches[matchId]
+    if (!match) { return {} }
+    return match
   }
 
   async getAllPendingBets () {
@@ -34,7 +43,9 @@ class BettyDB {
 
   async getPendingBet (betId) {
     const pendingBets = await this.getAllPendingBets()
-    return pendingBets[betId]
+    const bet = pendingBets[betId]
+    if (!bet) { return {} }
+    return bet
   }
 
   async getAllTransactions () {
@@ -43,7 +54,9 @@ class BettyDB {
 
   async getTransaction (txHash) {
     const transactions = await this.getAllTransactions()
-    return transactions[txHash]
+    const tx = transactions[txHash]
+    if (!tx) { return {} }
+    return tx
   }
 
   async addTransaction (txHash, txObj) {
@@ -62,7 +75,11 @@ class BettyDB {
     // add bet to match obj
     const matchId = betObj.matchId
     const match = await this.getMatch(matchId)
-    match.bets[betId] = betObj
+    if (!match.bets) {
+      match.bets = { betId: betObj }
+    } else {
+      match.bets[betId] = betObj
+    }
     // add bet to bets list
     const bets = await this.get(BETS_KEY, {})
     bets[betId] = betObj
