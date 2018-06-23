@@ -1,7 +1,7 @@
-import axios from 'axios'
+const axios = require('axios')
 const oracle = process.env.ORACLE
 
-export function validateBet (betObj) {
+const validateBet = async (betObj) => {
     const match = await axios.get(oracle + `/game/${betObj.matchId}`)
     if (match.data.matchTime >= new Date()) {
         return false
@@ -11,4 +11,8 @@ export function validateBet (betObj) {
     }
 
     return true
+}
+
+module.exports = {
+    validateBet
 }

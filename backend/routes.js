@@ -8,6 +8,8 @@ const hash = require('object-hash')
 const RippleAPI = require('ripple-lib').RippleAPI
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 const broker = require('../codule/n-squared')()
+const Consensus = require('./common/BasicConsensus')
+const consensus = new Consensus(broker)
 
 
 
@@ -51,6 +53,7 @@ router.post('/bet-info', async (req, res) => {
     const destinationTag = hash(req.body)
     // TODO: Add all info into DB into pending DB.
     req.body['destinationTag'] = destinationTag
+    await consensus.validateBetInfo(req.body)
     await BettyDB.addPendingBet(destinationTag, req.body)
     res.send(req.body)
   }).catch(err => {
