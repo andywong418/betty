@@ -38,6 +38,9 @@ class BetModal extends React.Component {
     })
   }
 
+  resetInfo () {
+   // TODO: reset DestinationTag after close. Or maybe on place bet remove
+  }
   render () {
     const { match, closeModal, sharedAddress, postBetInfo, bettingTeam, betInfoError, destinationTag, publicKey} = this.props
     return (

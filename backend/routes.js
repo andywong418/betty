@@ -5,12 +5,14 @@ const axios = require('axios')
 const oracle = process.env.ORACLE
 const BettyDB = require('./common/BettyDB')
 const hash = require('object-hash')
+const farmhash = require('farmhash');
 const RippleAPI = require('ripple-lib').RippleAPI
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 const broker = require('../codule/n-squared')()
 const Consensus = require('./common/BasicConsensus')
 const consensus = new Consensus(broker)
 
+const {validatePendingBet, validateBet, validateMatch} = require('./common/Validate')
 
 
 router.get('/matches', async (req, res) => {
@@ -50,11 +52,10 @@ router.post('/bet-info', async (req, res) => {
   rippleAPI.connect().then(() => {
     return rippleAPI.getAccountInfo(req.body.publicKey)
   }).then(async accountInfo => {
-    const destinationTag = hash(req.body)
+    const destinationTag = farmhash.hash32(hash(req.body))
     // TODO: Add all info into DB into pending DB.
     req.body['destinationTag'] = destinationTag
-    await consensus.validateBetInfo(req.body)
-    await BettyDB.addPendingBet(destinationTag, req.body)
+    await consensus.validateInfo(req.body, validatePendingBet, 'validatePendingObj', 'firstValidatePendingBetInfo', `secondValidatePendingBetInfo-${destinationTag}`, 'addPendingBet', true) 
     res.send(req.body)
   }).catch(err => {
     console.log('err', err)
@@ -76,4 +77,4 @@ router.post('/bet', async (req, res) => {
 // Otherwise pay out games 4 hours after match time start if winner has been decided (it most probably will have).
 // Remove game from games to pay out after (or should we not remove and just mark them as paid?)
 
-module.exports = router
+module.exports = {router, consensus}

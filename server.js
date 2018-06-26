@@ -3,16 +3,18 @@ const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
 const PORT = process.env.PORT || 3002
-const api = require('./backend/routes')
+const api = require('./backend/routes').router
+const consensus = require('./backend/routes').consensus
 const RippleAPI = require('ripple-lib').RippleAPI
 const WebSocket = require('ws')
 const BettyDB = require('./backend/common/BettyDB')
 const wss = new WebSocket.Server({ port: Number(process.env.WEB_SOCKET) || 8002 })
+const monitorBets = require('./backend/handlers/monitorBets').monitorBets
 // Put logic for host key gen in here.
 
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 // Change to wss://s1.ripple.com:443 for production
-
+let rippleStarted = false
 wss.on('connection', ws => {
   ws.on('message', message => {
     try {
@@ -53,6 +55,8 @@ wss.on('connection', ws => {
           ws.close()
         })
       })
+      rippleStarted = true
+      monitorBets(consensus)
     }
     if (message.shareAddressWithPeer) {
       const {address, hostList} = message
@@ -63,6 +67,16 @@ wss.on('connection', ws => {
     }
   })
 })
+async function startMonitoring () {
+  if (!rippleStarted) {
+    const multiSignAddr = await BettyDB.get('sharedWalletAddress')
+    if (multiSignAddr) {
+      monitorBets(consensus)
+    }
+  }
+}
+
+startMonitoring()
 
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(bodyParser.json())

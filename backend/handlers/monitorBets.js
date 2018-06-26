@@ -1,14 +1,15 @@
 const axios = require('axios')
 const db = require('../common/BettyDB.js')
-const account = db.get('sharedWalletAddress')
 const debug = require('debug')('betty:bets')
 const oracle = process.env.ORACLE
 const RippleAPI = require('ripple-lib').RippleAPI
 const rippleServer = 'wss://s.altnet.rippletest.net:51233' // public rippled testnet server
 const ripple = new RippleAPI({ server: rippleServer })
+const {validateBet, validateMatch, isEmpty} = require('../common/Validate')
 
-async function monitorBets () {
-  ripple.connect().then(() => {
+async function monitorBets (consensus) {
+  ripple.connect().then( async () => {
+    console.log('rippleAPI connected')
     ripple.connection.on('transaction', async (txObj) => {
       const transaction = txObj.transaction
       try {
@@ -17,73 +18,39 @@ async function monitorBets () {
         await db.addTransaction(txHash, transaction)
 
         const betId = transaction.DestinationTag
-        debug(`validating bet ${betId}`)
-        const pendingBet = await validateBet(betId)
-
-        const matchId = pendingBet.matchId
-        debug(`validating details for match ${matchId}`)
-        const match = await validateMatch(matchId)
+        console.log(`validating bet ${betId}`)
+        const pendingBet = await db.getPendingBet(betId)
+        const matchId = await consensus.validateInfo({betId}, validateBet, 'validatingBetObj', 'firstValidateBetInfo', `secondValidateBetInfo-${betId}`, 'pendingBetChecked', pendingBet.matchId)
+        console.log(`validating details for match ${matchId}`)
+        await consensus.validateInfo({matchId}, validateMatch, 'validatingMatchObj', 'firstValidateMatchInfo', `secondValidateMatchInfo-${matchId}`, 'matchChecked', true)
+        console.log('getting past match verification?')
         const dbMatch = await db.getMatch(matchId)
         if (isEmpty(dbMatch)) {
-          await db.addMatch(matchId, match)
+          consensus.sendInfoToPeers('addMatch', dbMatch)
         }
 
         debug(`adding bet ${betId} to pool`)
-        await db.removePendingBet(betId)
+        consensus.sendInfoToPeers('removePendingBet', {betId})
         const finalBet = {
           ...pendingBet,
           txHash: transaction.txHash,
           amount: transaction.Amount,
           createdAt: new Date()
         }
-        await db.addBet(betId, finalBet)
-        debug(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
+        console.log('finalBet', finalBet)
+        consensus.sendInfoToPeers('addBet', finalBet)
+        console.log(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
       } catch (err) {
         console.log(err)
       }
     })
+    const { address } = await db.get('sharedWalletAddress')
 
     return ripple.connection.request({
       command: 'subscribe',
-      accounts: [ account ]
+      accounts: [ address ]
     })
   }).catch(console.error)
-}
-
-async function validateBet (betId) {
-  const bet = await db.getBet(betId)
-  if (!isEmpty(bet)) {
-    throw new Error(`Bet ${betId} has already been placed`)
-  }
-
-  const pendingBet = await db.getPendingBet(betId)
-  if (isEmpty(pendingBet)) {
-    throw new Error(`Bet ${betId} is not defined`)
-  }
-  debug(`Bet ${betId} is valid`)
-  return pendingBet
-}
-
-async function validateMatch (matchId) {
-  let match
-  const url = oracle + `/game/${matchId}`
-  const response = await axios.get(url)
-  if (response.data === '') {
-    throw new Error(`Match ${matchId} does not exist`)
-  }
-
-  match = response.data
-  const matchTime = new Date(match.matchTime)
-  const now = new Date()
-  if (now >= matchTime) {
-    throw new Error(`Match ${matchId} has already started`)
-  }
-  debug(`Match ${matchId} is valid`)
-  return match
-}
-
-function isEmpty (obj) {
-  return Object.keys(obj).length === 0
 }
 
 module.exports = { monitorBets }
