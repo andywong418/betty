@@ -5,15 +5,14 @@ const axios = require('axios')
 const oracle = process.env.ORACLE
 const BettyDB = require('./common/BettyDB')
 const hash = require('object-hash')
-const farmhash = require('farmhash');
+const farmhash = require('farmhash')
 const RippleAPI = require('ripple-lib').RippleAPI
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 const broker = require('../codule/n-squared')()
 const Consensus = require('./common/BasicConsensus')
 const consensus = new Consensus(broker)
-
-const {validatePendingBet, validateBet, validateMatch} = require('./common/Validate')
-
+const asyncLib = require('async')
+const {validatePendingBet, validateOpposingPendingBet} = require('./common/Validate')
 
 router.get('/matches', async (req, res) => {
   const url = oracle + '/games'
@@ -41,8 +40,22 @@ router.get('/team', async (req, res) => {
 router.get('/wallet-address', async (req, res) => {
   res.send(req.walletAddress)
 })
-router.get('/bets', (req, res) => {
-  // Returns lists of bets made which are stored in localStorage.
+router.get('/bets', async (req, res) => {
+  // Returns lists of bets made which are stored in levelDB.
+  const newBets = {}
+  const bets = await BettyDB.getAllBets()
+  console.log('bets', bets)
+  for (let key in bets) {
+    const match = await BettyDB.getMatch(bets[key].matchId)
+    if (bets[key].opposingBet) {
+      console.log('bets key', bets[key])
+    }
+    bets[key].match = match
+    if (new Date(match.matchTime) > new Date()) {
+      newBets[key] = bets[key]
+    }
+  }
+  res.send(newBets)
 })
 
 router.post('/bet-info', async (req, res) => {
@@ -55,7 +68,7 @@ router.post('/bet-info', async (req, res) => {
     const destinationTag = farmhash.hash32(hash(req.body))
     // TODO: Add all info into DB into pending DB.
     req.body['destinationTag'] = destinationTag
-    await consensus.validateInfo(req.body, validatePendingBet, 'validatePendingObj', 'firstValidatePendingBetInfo', `secondValidatePendingBetInfo-${destinationTag}`, 'addPendingBet', true) 
+    await consensus.validateInfo(req.body, validatePendingBet, 'validatePendingObj', 'firstValidatePendingBetInfo', `secondValidatePendingBetInfo-${destinationTag}`, 'addPendingBet', true)
     res.send(req.body)
   }).catch(err => {
     console.log('err', err)
@@ -68,13 +81,28 @@ router.post('/bet-info', async (req, res) => {
     })
   })
 })
-
+router.post('/opposing-bet-info', async (req, res) => {
+  rippleAPI.connect().then(() => {
+    return rippleAPI.getAccountInfo(req.body.publicKey)
+  }).then(async accountInfo => {
+    const destinationTag = farmhash.hash32(hash(req.body))
+    req.body['destinationTag'] = destinationTag
+    await consensus.validateInfo(req.body, validateOpposingPendingBet, 'validateOpposingPendingObj', 'firstValidateOpposingPendingBetInfo', `secondValidateOpposingPendingBetInfo-${destinationTag}`, 'addPendingBet', true)
+    res.send(req.body)
+  }).catch(err => {
+    console.log('err', err)
+    res.send({
+      destinationTag: null,
+      bettingTeam: null,
+      publicKey: null,
+      name: null,
+      betInfoError: 'Validation Error: ' + err
+    })
+  })
+})
 router.post('/bet', async (req, res) => {
   // Post bet. Need to create a transaction and send signed one. Include team to bet on, matchId, amountToBet.
   // Record games to pay out.
 })
-// Should record all the games where bets have been made and record whether or not that match result has been paid out.
-// Otherwise pay out games 4 hours after match time start if winner has been decided (it most probably will have).
-// Remove game from games to pay out after (or should we not remove and just mark them as paid?)
 
 module.exports = {router, consensus}

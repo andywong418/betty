@@ -8,7 +8,7 @@ const ripple = new RippleAPI({ server: rippleServer })
 const {validateBet, validateMatch, isEmpty} = require('../common/Validate')
 
 async function monitorBets (consensus) {
-  ripple.connect().then( async () => {
+  ripple.connect().then(async () => {
     console.log('rippleAPI connected')
     ripple.connection.on('transaction', async (txObj) => {
       const transaction = txObj.transaction
@@ -18,28 +18,29 @@ async function monitorBets (consensus) {
         await db.addTransaction(txHash, transaction)
 
         const betId = transaction.DestinationTag
-        console.log(`validating bet ${betId}`)
+        debug(`validating bet ${betId}`)
         const pendingBet = await db.getPendingBet(betId)
         const matchId = await consensus.validateInfo({betId}, validateBet, 'validatingBetObj', 'firstValidateBetInfo', `secondValidateBetInfo-${betId}`, 'pendingBetChecked', pendingBet.matchId)
-        console.log(`validating details for match ${matchId}`)
+        debug(`validating details for match ${matchId}`)
+        const match = await validateMatch({matchId})
+        debug('checking match', match)
         await consensus.validateInfo({matchId}, validateMatch, 'validatingMatchObj', 'firstValidateMatchInfo', `secondValidateMatchInfo-${matchId}`, 'matchChecked', true)
-        console.log('getting past match verification?')
         const dbMatch = await db.getMatch(matchId)
         if (isEmpty(dbMatch)) {
-          consensus.sendInfoToPeers('addMatch', dbMatch)
+          consensus.sendInfoToPeers('addMatch', match)
         }
 
         debug(`adding bet ${betId} to pool`)
         consensus.sendInfoToPeers('removePendingBet', {betId})
         const finalBet = {
           ...pendingBet,
-          txHash: transaction.txHash,
+          txHash: transaction.hash,
           amount: transaction.Amount,
           createdAt: new Date()
         }
-        console.log('finalBet', finalBet)
+        debug('finalBet', finalBet)
         consensus.sendInfoToPeers('addBet', finalBet)
-        console.log(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
+        debug(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
       } catch (err) {
         console.log(err)
       }

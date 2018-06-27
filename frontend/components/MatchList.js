@@ -13,13 +13,8 @@ class MatchList extends React.Component {
 
   showMatchToBet (match) {
     this.setState({
-      showModal: !this.state.showModal
-    }, () => {
-      if (this.state.showModal) {
-        this.setState(
-          { matchPicked: match }
-        )
-      }
+      showModal: !this.state.showModal,
+      matchPicked: match
     })
   }
 

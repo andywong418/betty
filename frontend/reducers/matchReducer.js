@@ -15,13 +15,15 @@ export default function (state = defaultState, action) {
     case types.FETCH_MATCHES:
       newState.matchesNotPlayed = []
       newState.matchesPlayed = []
-      action.payload.forEach(match => {
-        if (new Date(match.matchTime) > new Date()) {
-          newState.matchesNotPlayed.push(match)
-        } else {
-          newState.matchesPlayed.push(match)
-        }
-      })
+      if (action.payload) {
+        action.payload.forEach(match => {
+          if (new Date(match.matchTime) > new Date()) {
+            newState.matchesNotPlayed.push(match)
+          } else {
+            newState.matchesPlayed.push(match)
+          }
+        })
+      }
       return newState
     default:
       return state
