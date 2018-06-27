@@ -1,6 +1,5 @@
 const axios = require('axios')
 const db = require('../common/BettyDB.js')
-const account = db.get('sharedWalletAddress')
 const debug = require('debug')('betty:bets')
 const oracle = process.env.ORACLE
 const RippleAPI = require('ripple-lib').RippleAPI
@@ -8,7 +7,8 @@ const rippleServer = 'wss://s.altnet.rippletest.net:51233' // public rippled tes
 const ripple = new RippleAPI({ server: rippleServer })
 
 async function monitorBets () {
-  ripple.connect().then(() => {
+  ripple.connect().then(async () => {
+    const account = await db.get('sharedWalletAddress')
     ripple.connection.on('transaction', async (txObj) => {
       const transaction = txObj.transaction
       try {
@@ -66,7 +66,7 @@ async function validateBet (betId) {
 
 async function validateMatch (matchId) {
   let match
-  const url = oracle + `/game/${matchId}`
+  const url = `${oracle}/game/${matchId}`
   const response = await axios.get(url)
   if (response.data === '') {
     throw new Error(`Match ${matchId} does not exist`)
