@@ -23,10 +23,10 @@ class BasicConsensus {
       }
     })
 
-    this.broker.receive('firstValidateBetInfo', async (i, betId) => {
-      betId = JSON.parse(betId)
-      const validated = await validateBet(betId)
-      this.broker.broadcast(`secondValidateBetInfo-${betId.betId}`, JSON.stringify({validated}))
+    this.broker.receive('firstValidateBetInfo', async (i, betObj) => {
+      betObj = JSON.parse(betObj)
+      const validated = await validateBet(betObj)
+      this.broker.broadcast(`secondValidateBetInfo-${betObj.destinationTag}`, JSON.stringify({validated}))
     })
 
     this.broker.receive('firstValidateMatchInfo', async (i, matchId) => {

@@ -3,7 +3,7 @@ import * as types from '../actions/types'
 const defaultState = {
   destinationTag: null,
   bettingTeam: null,
-  publicKey: null,
+  address: null,
   betInfoError: null,
   bets: {}
 }
@@ -18,7 +18,7 @@ export default function (state = defaultState, action) {
     case types.POST_BET_INFO:
       newState.destinationTag = action.payload.destinationTag
       newState.bettingTeam = action.payload.bettingTeam
-      newState.publicKey = action.payload.publicKey
+      newState.address = action.payload.address
       newState.betInfoError = action.payload.betInfoError
       return newState
     case types.FETCH_BETS:
@@ -27,7 +27,7 @@ export default function (state = defaultState, action) {
     case types.POST_OPPOSING_BET_INFO:
       newState.destinationTag = action.payload.destinationTag
       newstate.bettingTeam - action.payload.bettingTeam
-      newState.publicKey = action.payload.publicKey
+      newState.address = action.payload.address
       newState.betInfoError = action.payload.betInfoError
     default:
       return state

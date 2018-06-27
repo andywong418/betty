@@ -6,7 +6,7 @@ class BetModal extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      publicKey: '',
+      address: '',
       bettingTeam: null,
       errorMessage: null,
       email: '',
@@ -27,9 +27,9 @@ class BetModal extends React.Component {
   }
 
   postBetInfoValidate () {
-    const { publicKey, bettingTeam, email, name } = this.state
+    const { address, bettingTeam, email, name } = this.state
 
-    if (!publicKey || !bettingTeam || !email || !name) {
+    if (!address || !bettingTeam || !email || !name) {
       this.setState({
         errorMessage: true
       })
@@ -38,7 +38,7 @@ class BetModal extends React.Component {
 
     if (!this.props.bet) {
       this.props.postBetInfo({
-        publicKey,
+        address,
         bettingTeam,
         matchId: this.props.match.id,
         email,
@@ -46,7 +46,7 @@ class BetModal extends React.Component {
       })
     } else {
       this.props.postOpposingBetInfo({
-        publicKey,
+        address,
         bettingTeam,
         matchId: this.props.bet.matchId,
         opposingBet: this.props.bet.destinationTag,
@@ -60,8 +60,7 @@ class BetModal extends React.Component {
     // TODO: reset DestinationTag after close. Or maybe on place bet remove
   }
   render () {
-    const { match, closeModal, sharedAddress, postBetInfo, bettingTeam, betInfoError, destinationTag, publicKey, bet, address} = this.props
-    console.log('sharedAddress', address)
+    const { match, closeModal, sharedAddress, postBetInfo, bettingTeam, betInfoError, destinationTag, address, bet, walletAddress} = this.props
 
     return (
       <div className='cover'>
@@ -80,7 +79,7 @@ class BetModal extends React.Component {
                     ? <div>
                       <span> You bet on { bettingTeam }! You can now send a transaction from a wallet of your choice. In your transaction, please specify: </span>
                       <ul className='bet-info'>
-                        <li className='destination-address'> Destination XRP address: <span> { address } </span></li>
+                        <li className='destination-address'> Destination XRP address: <span> { walletAddress } </span></li>
                         <li className='destination-tag'> Destination Tag: <span> {destinationTag} </span> </li>
                       </ul>
                       <p> You must send the transaction before the game starts at <strong>{dateTime(match.matchTime)}</strong>. <strong> Any transactions after this time will be rejected </strong>. If you lose the above information you can just bet for the same team in the same match again.</p>
@@ -88,9 +87,9 @@ class BetModal extends React.Component {
                     </div>
                     : <form>
                       <div className='form-group row'>
-                        <label className='col-sm-2 col-form-label'>Public key</label>
+                        <label className='col-sm-2 col-form-label'>XRP address</label>
                         <div className='col-sm-10'>
-                          <input type='text' name='publicKey' className='form-control' placeholder='XRP public key' onChange={(event) => this.handleInputChange(event)}/>
+                          <input type='text' name='address' className='form-control' placeholder='XRP address' onChange={(event) => this.handleInputChange(event)}/>
                         </div>
 
                       </div>
@@ -116,7 +115,7 @@ class BetModal extends React.Component {
                           <input type='text' name='email' className='form-control' placeholder='Email' onChange={(event) => this.handleInputChange(event)}/>
                         </div>
                       </div>
-                      <span style={{fontSize: '13px', color: 'grey'}}> {bet === undefined ? 'Friendly reminder: Since you will be sending money from a wallet of your choice to our XRP address, you can choose the amount when you send the transaction!' : `Friendly reminder: Since this is an opposing bet, you have to send ${bet.amount} XRP`}</span>
+                      <span style={{fontSize: '15px', color: 'grey'}}> {bet === undefined ? 'Friendly reminder: Since you will be sending money from a wallet of your choice to our XRP address, you can choose the amount when you send the transaction!' : `Friendly reminder: Since this is an equal opposing bet, you have to send ${bet.amount} XRP`}</span>
                     </form>
                 }
               </div>
@@ -135,9 +134,9 @@ class BetModal extends React.Component {
 }
 const mapStateToProps = (state) => {
   return {
-    address: state.addressReducer.address,
+    walletAddress: state.addressReducer.address,
     betInfoError: state.betReducer.betInfoError,
-    publicKey: state.betReducer.publicKey,
+    address: state.betReducer.address,
     destinationTag: state.betReducer.destinationTag,
     bettingTeam: state.betReducer.bettingTeam
   }

@@ -21,7 +21,9 @@ async function monitorBets (consensus) {
         const betId = transaction.DestinationTag
         debug(`validating bet ${betId}`)
         const pendingBet = await db.getPendingBet(betId)
-        const matchId = await consensus.validateInfo({betId}, validateBet, 'validatingBetObj', 'firstValidateBetInfo', `secondValidateBetInfo-${betId}`, 'pendingBetChecked', pendingBet.matchId)
+        pendingBet.amount = transaction.Amount
+        pendingBet.address = transaction.Account
+        const matchId = await consensus.validateInfo(pendingBet, validateBet, 'validatingBetObj', 'firstValidateBetInfo', `secondValidateBetInfo-${betId}`, 'pendingBetChecked', pendingBet.matchId)
         debug(`validating details for match ${matchId}`)
         const match = await validateMatch({matchId})
         debug('checking match', match)
@@ -36,7 +38,6 @@ async function monitorBets (consensus) {
         const finalBet = {
           ...pendingBet,
           txHash: transaction.hash,
-          amount: transaction.Amount,
           createdAt: new Date()
         }
         debug('finalBet', finalBet)

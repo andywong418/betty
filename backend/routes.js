@@ -59,7 +59,7 @@ router.post('/bet-info', async (req, res) => {
   // Return destination tag and address to send to user.
   // Check valid address, otherwise return error
   rippleAPI.connect().then(() => {
-    return rippleAPI.getAccountInfo(req.body.publicKey)
+    return rippleAPI.getAccountInfo(req.body.address)
   }).then(async accountInfo => {
     const destinationTag = farmhash.hash32(hash(req.body))
     // TODO: Add all info into DB into pending DB.
@@ -72,14 +72,14 @@ router.post('/bet-info', async (req, res) => {
     res.send({
       destinationTag: null,
       bettingTeam: null,
-      publicKey: null,
+      address: null,
       betInfoError: 'Address is not valid. Err: ' + err
     })
   })
 })
 router.post('/opposing-bet-info', async (req, res) => {
   rippleAPI.connect().then(() => {
-    return rippleAPI.getAccountInfo(req.body.publicKey)
+    return rippleAPI.getAccountInfo(req.body.address)
   }).then(async accountInfo => {
     const destinationTag = farmhash.hash32(hash(req.body))
     req.body['destinationTag'] = destinationTag
@@ -90,7 +90,7 @@ router.post('/opposing-bet-info', async (req, res) => {
     res.send({
       destinationTag: null,
       bettingTeam: null,
-      publicKey: null,
+      address: null,
       name: null,
       betInfoError: 'Validation Error: ' + err
     })

@@ -83,10 +83,7 @@ class BettyDB {
     // add bet to bets list
     const bets = await this.get(BETS_KEY, {})
     bets[betId] = betObj
-    console.log('final check for opposing bet change', bets[betId])
     await this.set(BETS_KEY, bets)
-    const bet = await this.getBet(betId)
-    console.log('final bet?', bet)
   }
 
   async addPendingBet (betId, betObj) {
