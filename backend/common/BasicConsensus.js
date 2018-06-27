@@ -54,9 +54,9 @@ class BasicConsensus {
         if (betObj.opposingBet) {
           let opposingBet = await this.db.getBet(betObj.opposingBet)
           opposingBet.opposingBet = betObj.destinationTag
-          this.db.addBet(opposingBet.destinationTag, opposingBet)
+          await this.db.addBet(opposingBet.destinationTag, opposingBet)
         }
-        this.db.addBet(betObj.destinationTag, betObj)
+        await this.db.addBet(betObj.destinationTag, betObj)
       } catch (err) {
         console.log('error adding bet', err)
       }

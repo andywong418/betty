@@ -33,12 +33,14 @@ class BetList extends React.Component {
               const bet = this.props.bets[key]
               const otherTeam = bet.bettingTeam === bet.match.team1 ? bet.match.team2 : bet.match.team1
               return (
-                <div className="card col-12" style={{padding: '0', marginBottom: '40px'}} key={key}>
-                  <h5 className="card-header">{bet.name} put {bet.amount} XRP on {bet.bettingTeam} against {otherTeam}</h5>
+                <div className='col-6' style={{padding: '10px'}}>
+                <div className="card" style={{padding: '0', marginBottom: '40px'}} key={key}>
+                  <h6 className="card-header">{bet.name} put {bet.amount} XRP on {bet.bettingTeam} against {otherTeam}</h6>
                   <div className="card-body">
-                    <h5 className="card-title">Place an equal opposing bet of {bet.amount} XRP on {otherTeam}</h5>
+                    <h6 className="card-title">Place an equal opposing bet of {bet.amount} XRP on {otherTeam}</h6>
                     <span className="btn btn-primary" onClick={() => this.showBet(bet)} >Place bet</span>
                   </div>
+                </div>
                 </div>
               )
             })

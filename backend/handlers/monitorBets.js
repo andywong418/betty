@@ -6,10 +6,11 @@ const RippleAPI = require('ripple-lib').RippleAPI
 const rippleServer = 'wss://s.altnet.rippletest.net:51233' // public rippled testnet server
 const ripple = new RippleAPI({ server: rippleServer })
 const {validateBet, validateMatch, isEmpty} = require('../common/Validate')
+const {sendEmail} = require('../common/sendEmail')
 
 async function monitorBets (consensus) {
   ripple.connect().then(async () => {
-    console.log('rippleAPI connected')
+    const account = await db.get('sharedWalletAddress')
     ripple.connection.on('transaction', async (txObj) => {
       const transaction = txObj.transaction
       try {
@@ -41,6 +42,11 @@ async function monitorBets (consensus) {
         debug('finalBet', finalBet)
         consensus.sendInfoToPeers('addBet', finalBet)
         debug(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
+        sendEmail({
+          to: finalBet.email,
+          subject: 'Successful bet submitted for betty',
+          text: `Transaction succeeded. Your bet ${finalBet.destinationTag} has been added!`
+        })
       } catch (err) {
         console.log(err)
       }

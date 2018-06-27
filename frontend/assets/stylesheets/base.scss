@@ -92,7 +92,12 @@ h1 {
 .betInfoError {
   color: red
 }
-
+.card-header {
+  overflow: hidden;
+    /* overflow-x: hidden; */
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 footer {
   display: flex;
