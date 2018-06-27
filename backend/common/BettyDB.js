@@ -80,6 +80,8 @@ class BettyDB {
     } else {
       match.bets[betId] = betObj
     }
+    await this.addMatch(matchId, match)
+
     // add bet to bets list
     const bets = await this.get(BETS_KEY, {})
     bets[betId] = betObj
