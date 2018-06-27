@@ -56,6 +56,10 @@ async function validateBet (bet) {
           console.log('cannot bet against yourself')
           return false
       }
+      if (opposingBet.opposingBet) {
+          // been paired off already. Remove opposing Bet of this one and create a new one.
+          delete bet.opposingBet
+      }
   }
   const checkBet = await db.get(bet.destinationTag)
   if (!isEmpty(checkBet)) {

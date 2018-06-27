@@ -3,14 +3,40 @@ h1 {
   font-weight: 200;
 }
 
+.main-body {
+  min-height: 300px;
+}
 .header {
   position: relative;
   background-color: firebrick;
   color: white;
   padding-top: 30px;
   padding-bottom: 10px;
+  margin-bottom: 30px;
 }
 
+.link-list {
+  span {
+    margin-right: 30px;
+    a, a:active, a:hover {
+      color: white;
+      text-decoration: underline;
+      font-weight: bold;
+    }
+  }
+}
+
+.section-descriptor {
+    text-align: left;
+    color: gray;
+    /* text-decoration-color: darkgoldenrod; */
+    text-decoration: underline;
+    text-decoration-color: #f7d103;
+}
+.section-description {
+  text-align: left;
+  color: #737272;
+}
 .content-wrapper {
   display: flex;
   width: 70%;

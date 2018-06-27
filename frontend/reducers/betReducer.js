@@ -29,6 +29,10 @@ export default function (state = defaultState, action) {
       newstate.bettingTeam - action.payload.bettingTeam
       newState.address = action.payload.address
       newState.betInfoError = action.payload.betInfoError
+      return newState
+    case types.RESET_DESTINATION_TAG:
+      newState.destinationTag = null
+      return newState
     default:
       return state
   }

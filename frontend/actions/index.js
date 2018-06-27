@@ -41,3 +41,9 @@ export const getBets = () => async (dispatch) => {
     payload: resp.data
   })
 }
+
+export const resetDestinationTag = () => async (dispatch) => {
+  dispatch({
+    type: types.RESET_DESTINATION_TAG
+  })
+}

@@ -25,7 +25,6 @@ class Home extends React.Component {
     return (
       <div className='text-center main-body'>
         <Header name={this.props.name} />
-        <MatchList matchesNotPlayed={this.props.matchesNotPlayed} matchesPlayed={this.props.matchesPlayed} sharedAddress={this.props.address} />
         <BetList getBets = {() => this.getBets()} bets= {this.props.bets} sharedAddress={this.props.address}/>
         <Footer />
       </div>
