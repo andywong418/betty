@@ -26,9 +26,9 @@ const validateOpposingPendingBet = async (betObj) => {
     return false
   }
   if (opposingBet.address === betObj.address) {
-      // Pending Bet against yourself
-      console.log('Cannot post pending bet against yourself')
-      return false
+    // Pending Bet against yourself
+    console.log('Cannot post pending bet against yourself')
+    return false
   }
   if (betObj.bettingTeam !== match.data.team1 && betObj.bettingTeam !== match.data.team2) {
     return false
@@ -42,24 +42,24 @@ const validateOpposingPendingBet = async (betObj) => {
 }
 async function validateBet (bet) {
   if (Number(bet.amount) > MAX_BET) {
-      return false
+    return false
   }
 
   if (bet.opposingBet) {
-      // check if bet matches opposing bet within a certain bound
-      const opposingBet = await db.getBet(bet.opposingBet)
-      if (bet.amount < opposingBet.amount - TRANSACTION_COST || bet.amount > opposingBet.amount + TRANSACTION_COST) {
-        console.log('amounts do not match')
-        return false
-      }
-      if (bet.address === opposingBet.address) {
-          console.log('cannot bet against yourself')
-          return false
-      }
-      if (opposingBet.opposingBet) {
-          // been paired off already. Remove opposing Bet of this one and create a new one.
-          delete bet.opposingBet
-      }
+    // check if bet matches opposing bet within a certain bound
+    const opposingBet = await db.getBet(bet.opposingBet)
+    if (bet.amount < opposingBet.amount - TRANSACTION_COST || bet.amount > opposingBet.amount + TRANSACTION_COST) {
+      console.log('amounts do not match')
+      return false
+    }
+    if (bet.address === opposingBet.address) {
+      console.log('cannot bet against yourself')
+      return false
+    }
+    if (opposingBet.opposingBet) {
+      // been paired off already. Remove opposing Bet of this one and create a new one.
+      delete bet.opposingBet
+    }
   }
   const checkBet = await db.get(bet.destinationTag)
   if (!isEmpty(checkBet)) {
@@ -74,8 +74,8 @@ async function validateBet (bet) {
   }
 
   if (pendingBet.address !== bet.address) {
-      console.log(`Pending bet key and actual key is not the same`)
-      return false
+    console.log(`Pending bet key and actual key is not the same`)
+    return false
   }
   debug(`Bet ${bet.destinationTag} is valid`)
   return bet

@@ -10,6 +10,7 @@ const WebSocket = require('ws')
 const BettyDB = require('./backend/common/BettyDB')
 const wss = new WebSocket.Server({ port: Number(process.env.WEB_SOCKET) || 8002 })
 const monitorBets = require('./backend/handlers/monitorBets').monitorBets
+const { backgroundPayOut } = require('./backend/handlers/backgroundPayOut')
 // Put logic for host key gen in here.
 
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
@@ -57,6 +58,7 @@ wss.on('connection', ws => {
       })
       rippleStarted = true
       monitorBets(consensus)
+      backgroundPayOut(consensus)
     }
     if (message.shareAddressWithPeer) {
       const {address, hostList} = message
@@ -72,6 +74,7 @@ async function startMonitoring () {
     const multiSignAddr = await BettyDB.get('sharedWalletAddress')
     if (multiSignAddr) {
       monitorBets(consensus)
+      backgroundPayOut(consensus)
     }
   }
 }

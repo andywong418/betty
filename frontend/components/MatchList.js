@@ -29,8 +29,8 @@ class MatchList extends React.Component {
     return (
       <div className='container' style ={{marginTop: '20px'}}>
         <h5 className='section-descriptor'> Matches to be played </h5>
-        <p  className='section-description'> Place a new bet on matches that are yet to have played. The maximum is 100 XRP.</p>
-        <div className='row'>
+        <p className='section-description'> Place a new bet on matches that are yet to have played. The maximum is 100 XRP.</p>
+        <div className='row' style={{textAlign: 'left'}}>
           {this.props.matchesNotPlayed.length > 0 ? this.props.matchesNotPlayed.slice(0, 12).map(match => {
             return (
               <div className='match-item-container col-4' key={match.id}>

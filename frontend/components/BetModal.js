@@ -117,7 +117,7 @@ class BetModal extends React.Component {
                           <input type='text' name='email' className='form-control' placeholder='Email' onChange={(event) => this.handleInputChange(event)}/>
                         </div>
                       </div>
-                      <span style={{fontSize: '15px', color: 'grey'}}> {bet === undefined ? 'Friendly reminder: Since you will be sending money from a wallet of your choice to our XRP address, you can choose the amount when you send the transaction!' : `Friendly reminder: Since this is an equal opposing bet, you have to send ${bet.amount/1000000} XRP`}</span>
+                      <span style={{fontSize: '15px', color: 'grey'}}> {bet === undefined ? 'Friendly reminder: Since you will be sending money from a wallet of your choice to our XRP address, you can choose the amount when you send the transaction!' : `Friendly reminder: Since this is an equal opposing bet, you have to send ${bet.amount / 1000000} XRP`}</span>
                     </form>
                 }
               </div>

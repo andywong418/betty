@@ -34,7 +34,7 @@ class BetList extends React.Component {
             ? keys.map(key => {
               const bet = this.props.bets[key]
               const otherTeam = bet.bettingTeam === bet.match.team1 ? bet.match.team2 : bet.match.team1
-              const conversion = bet.amount /1000000
+              const conversion = bet.amount / 1000000
               return (
                 <div className='col-6' style={{padding: '10px'}} key={key}>
                   <div className="card" style={{padding: '0', marginBottom: '40px'}}>
