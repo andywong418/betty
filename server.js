@@ -18,15 +18,15 @@ const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 // Change to wss://s1.ripple.com:443 for production
 let rippleStarted = false
 wss.on('connection', ws => {
-  ws.on('message', message => {
+  ws.on('message', async message => {
     try {
       message = JSON.parse(message)
     } catch (err) {
     }
     if (message.keyGenInitiate) {
-      rippleAPI.connect().then(() => {
+      rippleAPI.connect().then(async () => {
         const { address, secret } = rippleAPI.generateAddress()
-        BettyDB.set('keypair', {
+        await BettyDB.set('keypair', {
           address,
           secret
         })
@@ -38,8 +38,8 @@ wss.on('connection', ws => {
     }
     if (message.sendVerifiedSharedWallet) {
       const {address, hostList} = message
-      BettyDB.set('sharedWalletAddress', { address })
-      BettyDB.set('hostList', {
+      await BettyDB.set('sharedWalletAddress', { address })
+      await BettyDB.set('hostList', {
         hostList
       })
       hostList.forEach(hostURL => {
@@ -63,8 +63,8 @@ wss.on('connection', ws => {
     }
     if (message.shareAddressWithPeer) {
       const {address, hostList} = message
-      BettyDB.set('sharedWalletAddress', { address })
-      BettyDB.set('hostList', {
+      await BettyDB.set('sharedWalletAddress', { address })
+      await BettyDB.set('hostList', {
         hostList
       })
     }
