@@ -2,6 +2,7 @@ const { createTransport } = require('nodemailer')
 const debug = require('debug')('betty:send-email')
 
 function sendEmail (message) {
+  console.log('email pass', process.env.EMAIL_FROM, process.env.EMAIL_PASS)
   const transporter = createTransport({
     service: process.env.EMAIL_SERVICE, // e.g., 'gmail'
     auth: {

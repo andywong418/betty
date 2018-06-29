@@ -26,3 +26,24 @@ export const postBetInfo = (betObj) => async (dispatch) => {
     payload: resp.data
   })
 }
+
+export const postOpposingBetInfo = (betObj) => async (dispatch) => {
+  const resp = await axios.post('/api/opposing-bet-info', betObj)
+  dispatch({
+    type: types.POST_BET_INFO,
+    payload: resp.data
+  })
+}
+export const getBets = () => async (dispatch) => {
+  const resp = await axios.get('/api/bets')
+  dispatch({
+    type: types.FETCH_BETS,
+    payload: resp.data
+  })
+}
+
+export const resetDestinationTag = () => async (dispatch) => {
+  dispatch({
+    type: types.RESET_DESTINATION_TAG
+  })
+}

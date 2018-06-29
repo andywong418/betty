@@ -1,7 +1,7 @@
 const level = require('level')
 let dbUrl = './mydb'
-if (process.env.PORT) {
-  dbUrl += '-' + process.env.PORT
+if (process.env.SERVER_PORT) {
+  dbUrl += '-' + process.env.SERVER_PORT
 }
 
 const db = level(dbUrl, { valueEncoding: 'json' })
@@ -87,9 +87,11 @@ class BettyDB {
   }
 
   async addPendingBet (betId, betObj) {
-    const pendingBets = await this.get(PENDING_BETS_KEY, {})
-    pendingBets[betId] = betObj
-    await this.set(PENDING_BETS_KEY, pendingBets)
+    if (betId) {
+      const pendingBets = await this.get(PENDING_BETS_KEY, {})
+      pendingBets[betId] = betObj
+      await this.set(PENDING_BETS_KEY, pendingBets)
+    }
   }
 
   async removePendingBet (betId) {

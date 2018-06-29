@@ -1,15 +1,19 @@
 import React from 'react'
 import dateTime from '../utils/DateString'
 import { connect } from 'react-redux'
-import { postBetInfo } from '../actions/index'
+import { postBetInfo, postOpposingBetInfo, resetDestinationTag } from '../actions/index'
 class BetModal extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
-      publicKey: '',
+      address: '',
       bettingTeam: null,
       errorMessage: null,
-      email: ''
+      email: '',
+      name: ''
+    }
+    if (props.bet) {
+      this.state.bettingTeam = props.bet.bettingTeam === props.bet.match.team1 ? props.bet.match.team2 : props.bet.match.team1
     }
   }
 
@@ -23,23 +27,57 @@ class BetModal extends React.Component {
   }
 
   postBetInfoValidate () {
-    const { publicKey, bettingTeam } = this.state
-    if (!publicKey || !bettingTeam) {
+    const { address, bettingTeam, email, name } = this.state
+
+    if (!address || !bettingTeam || !email || !name) {
       this.setState({
         errorMessage: true
       })
       return
     }
-    this.props.postBetInfo({
-      publicKey,
-      bettingTeam,
-      matchId: this.props.match.id,
-      email: this.state.email
-    })
+
+    if (!this.props.bet) {
+      this.props.postBetInfo({
+        address,
+        bettingTeam,
+        matchId: this.props.match.id,
+        email,
+        name
+      })
+      this.setState({
+        address: '',
+        bettingTeam: null,
+        errorMessage: null,
+        email: '',
+        name: ''
+      })
+    } else {
+      this.props.postOpposingBetInfo({
+        address,
+        bettingTeam,
+        matchId: this.props.bet.matchId,
+        opposingBet: this.props.bet.destinationTag,
+        email,
+        name
+      })
+      this.setState({
+        address: '',
+        bettingTeam: null,
+        errorMessage: null,
+        email: '',
+        name: ''
+      })
+    }
   }
 
+  resetInfo () {
+    // TODO: reset DestinationTag after close. Or maybe on place bet remove
+    this.props.resetDestinationTag()
+    this.props.closeModal()
+  }
   render () {
-    const { match, closeModal, sharedAddress, postBetInfo, bettingTeam, betInfoError, destinationTag, publicKey} = this.props
+    const { match, bettingTeam, betInfoError, destinationTag, bet, walletAddress } = this.props
+
     return (
       <div className='cover'>
         <div className="modal">
@@ -47,7 +85,7 @@ class BetModal extends React.Component {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Submitting bet for {match.team1} vs {match.team2}</h5>
-                <button type="button" className="close" data-dismiss="modal" aria-label="Close" onClick={() => closeModal()}>
+                <button type="button" className="close" data-dismiss="modal" aria-label="Close" onClick={() => this.resetInfo()}>
                   <span aria-hidden="true">&times;</span>
                 </button>
               </div>
@@ -55,9 +93,9 @@ class BetModal extends React.Component {
                 {
                   destinationTag
                     ? <div>
-                      <span> You bet on { bettingTeam }! You can now send a transaction from a wallet of your choice. In your transaction, please specify: </span>
+                      <span> You bet on { bettingTeam }! You can now send a transaction from a wallet of your choice. The maximum bet is 100 XRP. In your transaction, please specify: </span>
                       <ul className='bet-info'>
-                        <li className='destination-address'> Destination XRP address: <span> { sharedAddress } </span></li>
+                        <li className='destination-address'> Destination XRP address: <span> { walletAddress } </span></li>
                         <li className='destination-tag'> Destination Tag: <span> {destinationTag} </span> </li>
                       </ul>
                       <p> You must send the transaction before the game starts at <strong>{dateTime(match.matchTime)}</strong>. <strong> Any transactions after this time will be rejected </strong>. If you lose the above information you can just bet for the same team in the same match again.</p>
@@ -65,29 +103,35 @@ class BetModal extends React.Component {
                     </div>
                     : <form>
                       <div className='form-group row'>
-                        <label className='col-sm-2 col-form-label'>Public key</label>
+                        <label className='col-sm-2 col-form-label'>Address</label>
                         <div className='col-sm-10'>
-                          <input type='text' name='publicKey' className='form-control' placeholder='XRP public key' onChange={(event) => this.handleInputChange(event)}/>
+                          <input type='text' name='address' className='form-control' placeholder='XRP address' value={this.state.address} onChange={(event) => this.handleInputChange(event)}/>
                         </div>
 
                       </div>
                       <div className='form-group row'>
                         <label className='col-sm-2 col-form-label'>Winner</label>
                         <div className='col-sm-10'>
-                          <select className='custom-select' name='bettingTeam' onChange={(event) => this.handleInputChange(event)}>
-                            <option defaultValue={null}> Choose team </option>
-                            <option value = {match.team1}>{match.team1}</option>
-                            <option value = {match.team2}>{match.team2}</option>
+                          <select defaultValue={this.state.bettingTeam} className='custom-select' name='bettingTeam' onChange={(event) => this.handleInputChange(event)} readOnly={true}>
+                            <option disabled={bet !== undefined}> Choose team </option>
+                            <option value = {match.team1} disabled = {bet && match.team1 !== this.state.bettingTeam}>{match.team1}</option>
+                            <option value = {match.team2} disabled = {bet && match.team2 !== this.state.bettingTeam}>{match.team2}</option>
                           </select>
+                        </div>
+                      </div>
+                      <div className='form-group row'>
+                        <label className='col-sm-2 col-form-label'>Name</label>
+                        <div className='col-sm-10'>
+                          <input type='text' name='name' className='form-control' placeholder='Name' value={this.state.name} onChange={(event) => this.handleInputChange(event)}/>
                         </div>
                       </div>
                       <div className='form-group row'>
                         <label className='col-sm-2 col-form-label'>Email</label>
                         <div className='col-sm-10'>
-                          <input type='text' name='email' className='form-control' placeholder='Email' onChange={(event) => this.handleInputChange(event)}/>
+                          <input type='text' name='email' className='form-control' placeholder='Email' value={this.state.email} onChange={(event) => this.handleInputChange(event)}/>
                         </div>
                       </div>
-                      <span style={{fontSize: '13px', color: 'grey'}}> Friendly reminder: Since you will be sending money from a wallet of your choice to our XRP address, you can choose the amount when you send the transaction!</span>
+                      <span style={{fontSize: '15px', color: 'grey'}}> {bet === undefined ? 'Friendly reminder: Since you will be sending money from a wallet of your choice to our XRP address, you can choose the amount when you send the transaction!' : `Friendly reminder: Since this is an equal opposing bet, you have to send ${bet.amount / 1000000} XRP`}</span>
                     </form>
                 }
               </div>
@@ -95,7 +139,7 @@ class BetModal extends React.Component {
                 {this.state.errorMessage ? <span className='betInfoError'>Please fill in all fields above</span> : null }
                 {betInfoError ? <span className='betInfoError'> Error submitting bet info - {betInfoError}</span> : null}
                 {destinationTag ? null : <button type="button" className="btn btn-primary" onClick={() => this.postBetInfoValidate()}>Submit bet info </button>}
-                <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={() => closeModal()}>Close</button>
+                <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={() => this.resetInfo()}>Close</button>
               </div>
             </div>
           </div>
@@ -106,9 +150,9 @@ class BetModal extends React.Component {
 }
 const mapStateToProps = (state) => {
   return {
-    address: state.addressReducer.address,
+    walletAddress: state.addressReducer.address,
     betInfoError: state.betReducer.betInfoError,
-    publicKey: state.betReducer.publicKey,
+    address: state.betReducer.address,
     destinationTag: state.betReducer.destinationTag,
     bettingTeam: state.betReducer.bettingTeam
   }
@@ -116,7 +160,9 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    postBetInfo: (betObj) => dispatch(postBetInfo(betObj))
+    postBetInfo: (betObj) => dispatch(postBetInfo(betObj)),
+    postOpposingBetInfo: (betObj) => dispatch(postOpposingBetInfo(betObj)),
+    resetDestinationTag: () => dispatch(resetDestinationTag())
   }
 }
 export default connect(mapStateToProps, mapDispatchToProps)(BetModal)
