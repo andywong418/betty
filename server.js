@@ -11,6 +11,7 @@ const BettyDB = require('./backend/common/BettyDB')
 const wss = new WebSocket.Server({ port: Number(process.env.WEB_SOCKET) || 8002 })
 const monitorBets = require('./backend/handlers/monitorBets').monitorBets
 const { backgroundPayOut } = require('./backend/handlers/backgroundPayOut')
+const axios = require('axios')
 // Put logic for host key gen in here.
 
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
@@ -79,6 +80,17 @@ async function startMonitoring () {
   }
 }
 
+async function sendBackUps () {
+  console.log('we in to send backups', process.env.BACKUP_URL)
+  const bets = await BettyDB.getAllBets()
+  axios.post(process.env.BACKUP_URL, {
+    bets,
+    token: process.env.BACKUP_TOKEN
+  })
+  setTimeout(sendBackUps, 1000 * 60 * 60)
+}
+
+setTimeout(sendBackUps, 1000 * 60 * 60)
 startMonitoring()
 
 app.use(express.static(path.join(__dirname, 'public')))

@@ -3,6 +3,7 @@ const {validatePendingBet, validateBet, validateMatch, validateOpposingPendingBe
 const BettyDB = require('./BettyDB')
 const axios = require('axios')
 const oracle = process.env.ORACLE
+const {multiSign} = require('./multisign')
 // Implement Lamport, Pease and Shostak Algo
 class BasicConsensus {
   constructor (broker) {
@@ -13,7 +14,6 @@ class BasicConsensus {
     // load all bets and create a listener for each
     this.loadListeners()
     this.broker.receive('pendingEpoch', 'addPendingBetListeners', (i, betId) => {
-      console.log('getting in here?', betId)
       this.addPendingBetListeners(betId)
     })
     this.broker.receive('betEpoch', 'addBetListeners', (i, betId) => {
@@ -54,7 +54,40 @@ class BasicConsensus {
       this.broker.broadcast(`${betObj.destinationTag}`, `secondValidateOpposingPendingBetInfo`, JSON.stringify({validated}))
     })
   }
-
+  async collectMultiSign (txJson, ripple, betId) {
+    const signProm = new Promise((resolve, reject) => {
+      this.multiSignObj[betId] = {
+        received: 0,
+        signature: {}
+      }
+      this.broker.broadcast(`${betId}`, 'multisign', JSON.stringify({
+        txJson,
+        ripple,
+        betId
+      }))
+      this.broker.receive(`${betId}`, 'secondSignObj', (i, signature) => {
+        if (signature) {
+          this.multiSignObj[betId]['received'] += 1
+          this.multiSignObj[betId]['signature'][i] = signature
+        }
+        if (this.multiSignObj[betId]['received'] === this.peerLength) {
+          // Sign/ submit
+          // Signature1, signature2, signature 3, signtarue 4
+          resolve('Final Sig')
+        }
+      })
+    })
+    let timeout
+    return Promise.race([
+      signProm,
+      new Promise((resolve, reject) => {
+        timeout = setTimeout(function () {
+          clearTimeout(timeout)
+          return resolve(`Consensus failed for bet ${betId}`)
+        }, 10000)
+      })
+    ])
+  }
   addBetListeners (betId) {
     this.broker.receive(`${betId}`, 'firstValidateBetInfo', async (i, betObj) => {
       betObj = JSON.parse(betObj)
@@ -76,7 +109,11 @@ class BasicConsensus {
         console.log('error adding bet', err)
       }
     })
-
+    this.broker.receive(`${betId}`, 'multiSign', async (i, txObj) => {
+      const {txJSON, ripple, betId} = JSON.parse(txObj)
+      const signature = await multiSign(txJSON, ripple)
+      this.broker.broadcast(`${betId}`, 'secondSignObj', signature)
+    })
     this.broker.receive(`${betId}`, 'firstBackgroundConsensus', async (i, betId) => {
       console.log('check bet ID', betId)
       const bet = await this.db.getBet(betId)
@@ -127,7 +164,6 @@ class BasicConsensus {
       matchId = JSON.parse(matchId)
       const match = await validateMatch(matchId)
       let validated = false
-      console.log('match', match)
       if (!isEmpty(match)) {
         validated = true
       }
@@ -245,7 +281,9 @@ class BasicConsensus {
       }
       this.betObjConsensus[betId]['backgroundConsensus'] = {}
       this.broker.broadcast(betId, 'firstBackgroundConsensus', betId)
-      this.broker.receive(`${betId}`, `secondBackgroundConsensus`, (i, validateResult) => {
+
+      this.broker.receive(betId, `secondBackgroundConsensus`, (i, validateResult) => {
+        console.log('\x1b[31m%s\x1b[0m', 'Message received')
         const { result } = JSON.parse(validateResult)
 
         if (!this.betObjConsensus[betId]['backgroundConsensus'].hasOwnProperty(i)) {
