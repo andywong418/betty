@@ -11,9 +11,11 @@ const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 const broker = require('../codule/n-squared')()
 const Consensus = require('./common/BasicConsensus')
 const consensus = new Consensus(broker)
-const asyncLib = require('async')
 const {validatePendingBet, validateOpposingPendingBet} = require('./common/Validate')
-
+async function startListeners () {
+  await consensus.loadListeners()
+}
+startListeners()
 router.get('/matches', async (req, res) => {
   const url = oracle + '/games'
   const response = await axios.get(url)
@@ -64,7 +66,9 @@ router.post('/bet-info', async (req, res) => {
     const destinationTag = farmhash.hash32(hash(req.body))
     // TODO: Add all info into DB into pending DB.
     req.body['destinationTag'] = destinationTag
-    await consensus.validateInfo(req.body, validatePendingBet, 'validatePendingObj', 'firstValidatePendingBetInfo', `secondValidatePendingBetInfo-${destinationTag}`, 'addPendingBet', true)
+    console.log('destinationTag', destinationTag)
+    consensus.sendInfoToPeers('pendingEpoch', 'addPendingBetListeners', destinationTag)
+    await consensus.validateInfo(req.body, validatePendingBet, 'validatePendingObj', 'firstValidatePendingBetInfo', `${destinationTag}`, `secondValidatePendingBetInfo`, 'addPendingBet', true)
     res.send(req.body)
   }).catch(err => {
     console.log('err', err)
@@ -83,7 +87,8 @@ router.post('/opposing-bet-info', async (req, res) => {
   }).then(async accountInfo => {
     const destinationTag = farmhash.hash32(hash(req.body))
     req.body['destinationTag'] = destinationTag
-    await consensus.validateInfo(req.body, validateOpposingPendingBet, 'validateOpposingPendingObj', 'firstValidateOpposingPendingBetInfo', `secondValidateOpposingPendingBetInfo-${destinationTag}`, 'addPendingBet', true)
+    consensus.sendInfoToPeers('pendingEpoch', 'addPendingBetListeners', destinationTag)
+    await consensus.validateInfo(req.body, validateOpposingPendingBet, 'validateOpposingPendingObj', 'firstValidateOpposingPendingBetInfo', `${destinationTag}`, `secondValidateOpposingPendingBetInfo`, 'addPendingBet', true)
     res.send(req.body)
   }).catch(err => {
     console.log('err', err)

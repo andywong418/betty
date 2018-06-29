@@ -1,7 +1,5 @@
-const axios = require('axios')
 const db = require('../common/BettyDB.js')
 const debug = require('debug')('betty:bets')
-const oracle = process.env.ORACLE
 const RippleAPI = require('ripple-lib').RippleAPI
 const rippleServer = 'wss://s.altnet.rippletest.net:51233' // public rippled testnet server
 const ripple = new RippleAPI({ server: rippleServer })
@@ -10,7 +8,7 @@ const {sendEmail} = require('../common/sendEmail')
 
 async function monitorBets (consensus) {
   ripple.connect().then(async () => {
-    const account = await db.get('sharedWalletAddress')
+    // const account = await db.get('sharedWalletAddress')
     ripple.connection.on('transaction', async (txObj) => {
       const transaction = txObj.transaction
       console.log('transaction?', transaction)
@@ -24,24 +22,30 @@ async function monitorBets (consensus) {
           const pendingBet = await db.getPendingBet(betId)
           pendingBet.amount = transaction.Amount
           pendingBet.address = transaction.Account
-          const matchId = await consensus.validateInfo(pendingBet, validateBet, 'validatingBetObj', 'firstValidateBetInfo', `secondValidateBetInfo-${betId}`, 'pendingBetChecked', pendingBet.matchId)
+          consensus.sendInfoToPeers('betEpoch', 'addBetListeners', betId)
+          const matchId = await consensus.validateInfo(pendingBet, validateBet, 'validatingBetObj', 'firstValidateBetInfo', `${betId}`, `secondValidateBetInfo`, 'pendingBetChecked', pendingBet.matchId)
           debug(`validating details for match ${matchId}`)
           const match = await validateMatch({matchId})
           debug('checking match', match)
-          await consensus.validateInfo({matchId}, validateMatch, 'validatingMatchObj', 'firstValidateMatchInfo', `secondValidateMatchInfo-${matchId}`, 'matchChecked', true)
+          consensus.sendInfoToPeers('matchEpoch', 'addMatchListeners', matchId)
+          await consensus.validateInfo({matchId, destinationTag: matchId}, validateMatch, 'validatingMatchObj', 'firstValidateMatchInfo', `${matchId}`, `secondValidateMatchInfo`, 'matchChecked', true)
           const dbMatch = await db.getMatch(matchId)
           if (isEmpty(dbMatch)) {
-            consensus.sendInfoToPeers('addMatch', match)
+            try {
+              consensus.sendInfoToPeers(match.id, 'addMatch', match)
+            } catch (err) {
+              console.log('error', err)
+            }
           }
           debug(`adding bet ${betId} to pool`)
-          consensus.sendInfoToPeers('removePendingBet', {betId})
+          consensus.sendInfoToPeers(betId, 'removePendingBet', {betId})
           const finalBet = {
             ...pendingBet,
             txHash: transaction.hash,
             createdAt: new Date()
           }
           debug('finalBet', finalBet)
-          consensus.sendInfoToPeers('addBet', finalBet)
+          consensus.sendInfoToPeers(finalBet.destinationTag, 'addBet', finalBet)
           debug(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
           sendEmail({
             to: finalBet.email,

@@ -1,6 +1,4 @@
-const debug = require('debug')('betty:payout')
-const oracle = process.env.ORACLE
-const RippleAPI = require('ripple-lib').RippleAPI
+
 const db = require('../common/BettyDB.js')
 
 async function startConsensus (consensus) {

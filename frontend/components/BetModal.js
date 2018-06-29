@@ -44,6 +44,13 @@ class BetModal extends React.Component {
         email,
         name
       })
+      this.setState({
+        address: '',
+        bettingTeam: null,
+        errorMessage: null,
+        email: '',
+        name: ''
+      })
     } else {
       this.props.postOpposingBetInfo({
         address,
@@ -52,6 +59,13 @@ class BetModal extends React.Component {
         opposingBet: this.props.bet.destinationTag,
         email,
         name
+      })
+      this.setState({
+        address: '',
+        bettingTeam: null,
+        errorMessage: null,
+        email: '',
+        name: ''
       })
     }
   }
@@ -62,7 +76,7 @@ class BetModal extends React.Component {
     this.props.closeModal()
   }
   render () {
-    const { match, sharedAddress, postBetInfo, bettingTeam, betInfoError, destinationTag, address, bet, walletAddress} = this.props
+    const { match, bettingTeam, betInfoError, destinationTag, bet, walletAddress } = this.props
 
     return (
       <div className='cover'>
@@ -91,7 +105,7 @@ class BetModal extends React.Component {
                       <div className='form-group row'>
                         <label className='col-sm-2 col-form-label'>Address</label>
                         <div className='col-sm-10'>
-                          <input type='text' name='address' className='form-control' placeholder='XRP address' onChange={(event) => this.handleInputChange(event)}/>
+                          <input type='text' name='address' className='form-control' placeholder='XRP address' value={this.state.address} onChange={(event) => this.handleInputChange(event)}/>
                         </div>
 
                       </div>
@@ -108,13 +122,13 @@ class BetModal extends React.Component {
                       <div className='form-group row'>
                         <label className='col-sm-2 col-form-label'>Name</label>
                         <div className='col-sm-10'>
-                          <input type='text' name='name' className='form-control' placeholder='Name' onChange={(event) => this.handleInputChange(event)}/>
+                          <input type='text' name='name' className='form-control' placeholder='Name' value={this.state.name} onChange={(event) => this.handleInputChange(event)}/>
                         </div>
                       </div>
                       <div className='form-group row'>
                         <label className='col-sm-2 col-form-label'>Email</label>
                         <div className='col-sm-10'>
-                          <input type='text' name='email' className='form-control' placeholder='Email' onChange={(event) => this.handleInputChange(event)}/>
+                          <input type='text' name='email' className='form-control' placeholder='Email' value={this.state.email} onChange={(event) => this.handleInputChange(event)}/>
                         </div>
                       </div>
                       <span style={{fontSize: '15px', color: 'grey'}}> {bet === undefined ? 'Friendly reminder: Since you will be sending money from a wallet of your choice to our XRP address, you can choose the amount when you send the transaction!' : `Friendly reminder: Since this is an equal opposing bet, you have to send ${bet.amount / 1000000} XRP`}</span>

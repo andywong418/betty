@@ -2,7 +2,7 @@ const path = require('path')
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
-const PORT = process.env.PORT || 3002
+const PORT = process.env.SERVER_PORT || 3002
 const api = require('./backend/routes').router
 const consensus = require('./backend/routes').consensus
 const RippleAPI = require('ripple-lib').RippleAPI
@@ -58,7 +58,7 @@ wss.on('connection', ws => {
       })
       rippleStarted = true
       monitorBets(consensus)
-      backgroundPayOut(consensus)
+      // backgroundPayOut(consensus)
     }
     if (message.shareAddressWithPeer) {
       const {address, hostList} = message
@@ -90,12 +90,12 @@ app.use('*', async (request, response, next) => {
     request.walletAddress = multiSignContract
     next()
   } else {
-    response.send('NO XRP ACCOUNT CREATED')
+    response.send(null)
   }
 })
 app.use('/api', api)
 app.get('*', (request, response) => {
-  response.sendFile(__dirname + '/public/index.html')
+  response.sendFile(path.join(__dirname, '/public/index.html'))
 })
 app.use(express.static(path.join(__dirname, 'public')))
 app.listen(PORT, error => {

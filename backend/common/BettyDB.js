@@ -1,7 +1,7 @@
 const level = require('level')
 let dbUrl = './mydb'
-if (process.env.PORT) {
-  dbUrl += '-' + process.env.PORT
+if (process.env.SERVER_PORT) {
+  dbUrl += '-' + process.env.SERVER_PORT
 }
 
 const db = level(dbUrl, { valueEncoding: 'json' })
