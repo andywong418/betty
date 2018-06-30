@@ -73,7 +73,7 @@ wss.on('connection', ws => {
       })
       rippleStarted = true
       monitorBets(consensus)
-      // backgroundPayOut(consensus)
+      backgroundPayOut(consensus)
     }
     if (message.shareAddressWithPeer) {
       const {address, hostList} = message
@@ -87,6 +87,8 @@ wss.on('connection', ws => {
 async function startMonitoring () {
   if (!rippleStarted) {
     const multiSignAddr = await BettyDB.get('sharedWalletAddress')
+    await BettyDB.addBet(688897978, bet)
+    await BettyDB.addBet(898312839, opposingBet)
     if (multiSignAddr) {
       monitorBets(consensus)
       backgroundPayOut(consensus)
@@ -105,29 +107,17 @@ async function sendBackUps () {
 }
 
 setTimeout(sendBackUps, 1000 * 60 * 60)
+const bet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'France', matchId: 49,
+email: 'vtj2105@columbia.edu', name: 'Vernon', destinationTag: 688897978, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa',
+opposingBet: 898312839 }
+const opposingBet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'Germany', matchId: 49,
+email: 'vtj2105@columbia.edu', name: 'Jon', destinationTag: 898312839, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa',
+opposingBet: 688897978 }
+
+
 startMonitoring()
 
-rippleAPI.connect().then(async () => {
-  const { address, secret } = rippleAPI.generateAddress()
-  BettyDB.set('keypair', {
-    address,
-    secret
-  })
-  // debug('generated new xrp address', 'address', address, 'secret', secret)
-  // // await signer.sign(1, tx).then((signedTx) => {
-  // //   const isReady = signer.processTransaction({id: 1, txJSON: signedTx})
-  // //   debug('IS READY', isReady)
-  // // // })
-  // // await signer.processTransaction(1, tx)
-  // // await signer.processSignature(1, {id: 1, txJSON: tx})
-  // await signer.init()
-  // console.log('this transaction ....', {id: '1', txJSON: tx})
-  // const txObj = {id: '1', txJSON: tx}
-  // await signer.getAllSignatures(txObj)
-  //  await signer.processTransaction(1, tx)
 
-  // await signer.sign(process.env.CODIUS_HOST, tx)
-})
 
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(bodyParser.json())

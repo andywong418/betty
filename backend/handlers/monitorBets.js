@@ -19,48 +19,76 @@ async function monitorBets (consensus) {
           await db.addTransaction(txHash, transaction)
           const betId = transaction.DestinationTag
           debug(`validating bet ${betId}`)
-          const pendingBet = await db.getPendingBet(betId)
-          pendingBet.amount = transaction.Amount
-          pendingBet.address = transaction.Account
-          consensus.sendInfoToPeers('betEpoch', 'addBetListeners', betId)
-          const matchId = await consensus.validateInfo(pendingBet, validateBet, 'validatingBetObj', 'firstValidateBetInfo', `${betId}`, `secondValidateBetInfo`, 'pendingBetChecked', pendingBet.matchId)
-          debug(`validating details for match ${matchId}`)
-          const match = await validateMatch({matchId})
-          debug('checking match', match)
-          consensus.sendInfoToPeers('matchEpoch', 'addMatchListeners', matchId)
-          await consensus.validateInfo({matchId, destinationTag: matchId}, validateMatch, 'validatingMatchObj', 'firstValidateMatchInfo', `${matchId}`, `secondValidateMatchInfo`, 'matchChecked', true)
-          const dbMatch = await db.getMatch(matchId)
-          if (isEmpty(dbMatch)) {
-            try {
-              consensus.sendInfoToPeers(match.id, 'addMatch', match)
-            } catch (err) {
-              console.log('error', err)
+          // Add listeners for query and response of for this betId. Ask neighbours for pending Bet
+          consensus.addListener(betId, 'queryPendingBet', async (i, betId) => {
+            const pendingBet = await db.getPendingBet(betId)
+            if (!isEmpty(pendingBet)) {
+              console.log('pending Bet?', pendingBet)
+              consensus.sendInfoToPeer(betId, 'pendingBetResponse', i, JSON.stringify(pendingBet))
+            } else {
+              consensus.sendInfoToPeer(betId, 'pendingBetResponse', i, 'nothing')
             }
-          }
-          debug(`adding bet ${betId} to pool`)
-          consensus.sendInfoToPeers(betId, 'removePendingBet', {betId})
-          const finalBet = {
-            ...pendingBet,
-            txHash: transaction.hash,
-            createdAt: new Date()
-          }
-          debug('finalBet', finalBet)
-          consensus.sendInfoToPeers(finalBet.destinationTag, 'addBet', finalBet)
-          debug(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
-          sendEmail({
-            to: finalBet.email,
-            subject: 'Successful bet submitted for betty',
-            text: `Transaction succeeded. Your bet ${finalBet.destinationTag} has been added!`
           })
+
+          consensus.addListener(betId, 'pendingBetResponse', async (i, betObj) => {
+            console.log('betOBJ', betObj)
+            if (betObj !== 'nothing') {
+              // validate this bet
+              betObj = JSON.parse(betObj)
+              // Add listeners for bet Id
+              try {
+                consensus.addBetListeners(betObj.destinationTag)
+                const matchId = await consensus.validateInfo(betObj, validateBet, 'validatingBetObj', 'firstValidateBetInfo', betId, `secondValidateBetInfo`, 'pendingBetChecked', betObj.matchId)
+                console.log('post consensus on bet', matchId)
+                const match = await validateMatch({matchId})
+                consensus.addMatchListeners(matchId)
+                await consensus.validateInfo({matchId, destinationTag: matchId}, validateMatch, 'validatingMatchObj', 'firstValidateMatchInfo', matchId, `secondValidateMatchInfo`, 'matchChecked', true)
+                const dbMatch = await db.getMatch(matchId)
+
+                if (isEmpty(dbMatch)) {
+                  db.addMatch(matchId, match)
+                }
+                debug(`adding bet ${betObj.betId} to pool`)
+                const pendingBet = await db.getPendingBet(betObj.destinationTag)
+                if (!isEmpty(pendingBet)) {
+                  // remove bet
+                  db.removePendingBet(pendingBet.destinationTag)
+                }
+                const finalBet = {
+                  ...betObj,
+                  txHash: transaction.hash,
+                  createdAt: new Date()
+                }
+                debug('finalBet', finalBet)
+                await db.addBet(finalBet.destinationTag, finalBet)
+                debug(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
+                sendEmail({
+                  to: finalBet.email,
+                  subject: 'Successful bet submitted for betty',
+                  text: `Transaction succeeded. Your bet ${finalBet.destinationTag} has been added!`
+                })
+              } catch (err) {
+                console.log(err)
+                sendEmail({
+                  to: betObj.email,
+                  subject: 'Error submitting bet to Betty',
+                  text: `Transaction failed. Error: ${err}`
+                })
+              }
+            }
+          })
+          consensus.sendInfoToPeers(betId, 'queryPendingBet', betId)
         } catch (err) {
           console.log(err)
           const betId = transaction.DestinationTag
           const pendingBet = await db.getPendingBet(betId)
-          sendEmail({
-            to: pendingBet.email,
-            subject: 'Error submitting bet to Betty',
-            text: `Transaction failed. Error: ${err}`
-          })
+          if (!isEmpty(pendingBet)) {
+            sendEmail({
+              to: pendingBet.email,
+              subject: 'Error submitting bet to Betty',
+              text: `Transaction failed. Error: ${err}`
+            })
+          }
         }
       }
     })
