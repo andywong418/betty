@@ -28,20 +28,13 @@ async function startConsensus (consensus) {
       try {
         let winnerAccount
         const opposingBet = bets[bet.opposingBet]
-        console.log('opposingBet', opposingBet, 'bet', bet)
         let winnings = (Number(bet.amount) + Number(opposingBet.amount)) / 1000000
         const match = await axios.get(`${oracle}/game/${bet.matchId}`)
-        console.log('bettingTeam', bet.bettingTeam, opposingBet.bettingTeam, match.data.winner)
-        console.log(bet.bettingTeam === match.data.winner)
-        console.log(opposingBet.bettingTeam === match.data.winner)
         if (bet.bettingTeam === match.data.winner) {
-          console.log('France won', bet.address)
           winnerAccount = bet.address
         } else if (opposingBet.bettingTeam === match.data.winner) {
-          console.log('Germany won', opposingBet.address)
           winnerAccount = opposingBet.address
         }
-        console.log('winnerAcc', winnerAccount)
         const payment = {
           source: {
             address: sourceAddress.address,
@@ -60,23 +53,17 @@ async function startConsensus (consensus) {
           },
           memos: [
             {
-              data: 'An XRP to pay out winner of Betty game',
-              format: 'plain/text'
+              data: 'resolve',
+              format: 'plain/text',
+              type: 'result'
             }
           ]
         }
         await ripple.connect()
         const prepared = await signer.preparePayment(payment)
-        console.log('PREPARED', prepared)
-        const { signedTransaction } = consensus.collectMultisign(prepared, ripple, bet.destinationTag)
-        const result = await ripple.submit(signedTransaction)
-        if (result) {
-          const newBet = {
-            ...bet,
-            status: 'resolved'
-          }
-          await db.addBet(newBet.destinationTag, newBet)
-        }
+        const signedTransaction = await consensus.collectMultisign(prepared, ripple, bet.destinationTag)
+        console.log('signedTransaction', signedTransaction)
+        console.log('result final', result)
       } catch (err) {
         console.error(err)
       }
@@ -103,26 +90,23 @@ async function startConsensus (consensus) {
           },
           memos: [
             {
-              data: 'An XRP to refund',
-              format: 'plain/text'
+              data: 'refund',
+              format: 'plain/text',
+              type: 'result'
             }
           ]
         }
-        const instructions = {maxLedgerVersionOffset: 5}
-        ripple.connect().then(async () => {
-          const prepared = await preparePayment(sourceAddress, payment, instructions)
-          consensus.collectMultiSign(prepared.txJson, ripple, bet.destinationTag)
-          // const { signedTransaction } = consensus.collectMultiSign(prepared.txJson, ripple, bet.destinationTag)
-          // ripple.submit(signedTransaction).then((success, err) => {
-          //   if (success) {
-          //     const newBet = {
-          //       ...bet,
-          //       status: 'refunded'
-          //     }
-          //     db.addBet(newBet.destinationTag, newBet)
-          //   }
-          // })
-        })
+        await ripple.connect()
+        const prepared = await signer.preparePayment(payment)
+        const signedTransaction = await consensus.collectMultisign(prepared, ripple, bet.destinationTag)
+        const result = await ripple.submit(signedTransaction)
+        if (result) {
+          const newBet = {
+            ...bet,
+            status: 'refunded'
+          }
+          await db.addBet(newBet.destinationTag, newBet)
+        }
       } catch (err) {
         console.error(err)
       }
@@ -132,7 +116,12 @@ async function startConsensus (consensus) {
 
 function backgroundPayOut (consensus) {
   // Check each bet
-  setTimeout(function () { startConsensus(consensus) }, 20000 * Math.random())
+  setTimeout(async () => {
+    await startConsensus(consensus)
+    setTimeout(function () {
+      backgroundPayOut(consensus)
+    }, (1000 * 60 * 60) + (30 * 60 * 1000 * Math.random()))
+  }, 20000 * Math.random())
 }
 
 module.exports = {

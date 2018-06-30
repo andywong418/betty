@@ -6,13 +6,22 @@ const ripple = new RippleAPI({ server: rippleServer })
 const {validateBet, validateMatch, isEmpty} = require('../common/Validate')
 const {sendEmail} = require('../common/sendEmail')
 
+function hex2a(hexx) {
+  var hex = hexx.toString() // force conversion
+  var str = ''
+  for (var i = 0; (i < hex.length && hex.substr(i, 2) !== '00'); i += 2) {
+    str += String.fromCharCode(parseInt(hex.substr(i, 2), 16))
+  }
+  return str
+}
+
 async function monitorBets (consensus) {
   ripple.connect().then(async () => {
-    // const account = await db.get('sharedWalletAddress')
+    const {address} = await db.get('sharedWalletAddress')
     ripple.connection.on('transaction', async (txObj) => {
       const transaction = txObj.transaction
       console.log('transaction?', transaction)
-      if (transaction.TransactionType === 'Payment') {
+      if (transaction.TransactionType === 'Payment' && transaction.Destination === address) {
         try {
           const txHash = transaction.hash
           debug(`Received incoming transaction: ${JSON.stringify(transaction, null, 2)}`)
@@ -42,7 +51,7 @@ async function monitorBets (consensus) {
                 console.log('post consensus on bet', matchId)
                 const match = await validateMatch({matchId})
                 consensus.addMatchListeners(matchId)
-                await consensus.validateInfo({matchId, destinationTag: matchId}, validateMatch, 'validatingMatchObj', 'firstValidateMatchInfo', matchId, `secondValidateMatchInfo`, 'matchChecked', true)
+                await consensus.validateInfo({matchId, destinationTag: matchId}, 'validatingMatchObj', 'firstValidateMatchInfo', matchId, `secondValidateMatchInfo`, 'matchChecked', true)
                 const dbMatch = await db.getMatch(matchId)
 
                 if (isEmpty(dbMatch)) {
@@ -91,8 +100,38 @@ async function monitorBets (consensus) {
           }
         }
       }
+      if (transaction.Account === address) {
+        const bet = await db.getBet(transaction.DestinationTag)
+        const winnings = Number(bet.amount) * 2 / 1000000
+        console.log('unique memo', hex2a(transaction.Memos[0].Memo.MemoData))
+        if (hex2a(transaction.Memos[0].Memo.MemoData) === 'resolve') {
+          const newBet = {
+            ...bet,
+            status: 'resolved'
+          }
+          console.log('newBET?!', newBet)
+          await db.addBet(newBet.destinationTag, newBet)
+          sendEmail({
+            to: bet.email,
+            subject: 'Successfully won bet!',
+            text: `Check your account. You should have won ${winnings} XRP`
+          })
+        }
+        if (hex2a(transaction.Memos[0].Memo.MemoData) === 'refund') {
+          const newBet = {
+            ...bet,
+            status: 'refunded'
+          }
+          await db.addBet(newBet.destinationTag, newBet)
+          const refund = Number(bet.amount) / 1000000
+          sendEmail({
+            to: bet.email,
+            subject: 'Bet refunded!',
+            text: `Check your account. You should have refunded ${refund} XRP`
+          })
+        }
+      }
     })
-    const { address } = await db.get('sharedWalletAddress')
 
     return ripple.connection.request({
       command: 'subscribe',

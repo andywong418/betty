@@ -1,5 +1,5 @@
 
-const {validatePendingBet, validateBet, validateMatch, validateOpposingPendingBet, isEmpty} = require('./Validate')
+const {validateBet, validateMatch, isEmpty} = require('./Validate')
 const BettyDB = require('./BettyDB')
 const axios = require('axios')
 const oracle = process.env.ORACLE
@@ -15,27 +15,12 @@ class BasicConsensus {
     this.betObjConsensus = {}
     // load all bets and create a listener for each
     this.loadListeners()
-    this.broker.receive('pendingEpoch', 'addPendingBetListeners', (i, betId) => {
-      this.addPendingBetListeners(betId)
-    })
-    this.broker.receive('betEpoch', 'addBetListeners', (i, betId) => {
-      this.x(betId)
-    })
-    this.broker.receive('matchEpoch', 'addMatchListeners', (i, matchId) => {
-      this.addMatchListeners(matchId)
-    })
+    this.signObj = {}
     this.signer = new Multisign(broker, ripple)
   }
 
   addPendingBetListeners (betId) {
     // Add this to all the different hosts.
-    this.broker.receive(betId, 'firstValidatePendingBetInfo', async (i, betObj) => {
-      console.log('ever getting in?')
-      betObj = JSON.parse(betObj)
-
-      const validated = await validatePendingBet(betObj)
-      this.broker.sendTo(`${betObj.destinationTag}`, `secondValidatePendingBetInfo`, i, JSON.stringify({validated}))
-    })
     this.broker.receive(betId, 'addPendingBet', async (i, betStr) => {
       const betObj = JSON.parse(betStr)
       try {
@@ -49,12 +34,6 @@ class BasicConsensus {
       betId = betId.betId
       this.db.removePendingBet(betId)
     })
-    this.broker.receive(betId, 'firstValidateOpposingPendingBetInfo', async (i, betObj) => {
-      betObj = JSON.parse(betObj)
-      console.log('betObj opposing', betObj)
-      const validated = await validateOpposingPendingBet(betObj)
-      this.broker.sendTo(`${betObj.destinationTag}`, `secondValidateOpposingPendingBetInfo`, i, JSON.stringify({validated}))
-    })
   }
   async collectMultisign (txJson, ripple, betId) {
     const signProm = new Promise((resolve, reject) => {
@@ -64,12 +43,27 @@ class BasicConsensus {
       // }
       // Request other hosts to sign the transaction
       console.log('TX JSON', txJson)
+      this.signObj[betId] = {
+        received: 0,
+        signatures: {
+
+        }
+      }
+
       this.broker.broadcast(`${betId}`, 'multisign', JSON.stringify(txJson))
-      this.broker.receive(`${betId}`, 'signature', (i, signedTxStr) => {
-        const signedTxObj = JSON.parse(signedTxStr)
-        const sent = this.signer.processSignature(i, signedTxObj)
-        if (sent) {
-          resolve('Transaction submitted')
+      this.broker.receive(`${betId}`, 'signature', async (i, signedTxStr) => {
+
+        if (!this.signObj[betId]['signatures'].hasOwnProperty(i)) {
+          this.signObj[betId]['signatures'][i] = signedTxStr
+          this.signObj[betId]['received'] += 1
+        }
+
+        if (this.signObj[betId]['received'] === this.peerLength) {
+          const sent = await this.signer.processSignature(betId, Object.values(this.signObj[betId]['signatures']))
+          console.log('sent', sent)
+          if (sent) {
+            resolve(sent)
+          }
         }
         //   this.multiSignObj[betId]['received'] += 1
         //   const newSignatures = this.signer.checkSignatures(txJson)
@@ -89,7 +83,7 @@ class BasicConsensus {
       new Promise((resolve, reject) => {
         timeout = setTimeout(function () {
           clearTimeout(timeout)
-          return resolve(`Consensus failed for bet ${betId}`)
+          return resolve(null)
         }, 10000)
       })
     ])
@@ -100,7 +94,6 @@ class BasicConsensus {
       const validated = await validateBet(betObj)
       this.broker.sendTo(`${betObj.destinationTag}`, `secondValidateBetInfo`, i, JSON.stringify({validated}))
     })
-
     this.broker.receive(betId, 'addBet', async (i, betObj) => {
       betObj = JSON.parse(betObj)
       try {
@@ -126,7 +119,6 @@ class BasicConsensus {
       const bet = await this.db.getBet(betId)
       if (!isEmpty(bet)) {
         const match = await axios.get(`${oracle}/game/${bet.matchId}`)
-        console.log('match Data', match.data)
         // check match winner
         // check status
         // if refunded/resolved - ignore. Check that status is refunded or resolved.
@@ -136,8 +128,7 @@ class BasicConsensus {
           this.broker.sendTo(betId, `secondBackgroundConsensus`, i, JSON.stringify({
             result: 'ignore'
           }))
-        }
-        if (match.data.winner) {
+        } else if (match.data.winner) {
           // Find opposing bet and pay out, otherwise refund.
           if (bet.opposingBet) {
             // Check winner to pay out winner. Add up amounts and transfer.
@@ -227,7 +218,7 @@ class BasicConsensus {
       maxCount
     }
   }
-  async validateInfo (betObj, validatingFunc, consensusField, sendEvent, receiveEpoch, receiveEvent, resultingEvent, resolveValue) {
+  async validateInfo (betObj, consensusField, sendEvent, receiveEpoch, receiveEvent, resultingEvent, resolveValue) {
     // Do your own validate then
     const newProm = new Promise(async (resolve, reject) => {
       // simple consensus rather than using Lamport for now.
@@ -287,7 +278,6 @@ class BasicConsensus {
       this.broker.receive(betId, `secondBackgroundConsensus`, (i, validateResult) => {
         console.log('\x1b[31m%s\x1b[0m', 'Message received')
         const { result } = JSON.parse(validateResult)
-
         if (!this.betObjConsensus[betId]['backgroundConsensus'].hasOwnProperty(i)) {
           this.betObjConsensus[betId]['backgroundConsensus'][i] = result
           this.betObjConsensus[betId]['received'] += 1

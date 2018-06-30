@@ -1,14 +1,12 @@
-import Proptypes from 'prop-types'
+
 import React from 'react'
 import { connect } from 'react-redux'
-import { Link } from 'react-router-dom'
-import MatchList from '../components/MatchList'
 import BetList from '../components/BetList'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import { getMatches, getAddress, getBets } from '../actions/index'
 
-class Home extends React.Component {
+class Bet extends React.Component {
   constructor (props) {
     super(props)
     this.state = {
@@ -48,4 +46,4 @@ const mapDispatchToProps = (dispatch) => {
     getBets: () => dispatch(getBets())
   }
 }
-export default connect(mapStateToProps, mapDispatchToProps)(Home)
+export default connect(mapStateToProps, mapDispatchToProps)(Bet)
