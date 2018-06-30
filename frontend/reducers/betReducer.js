@@ -26,7 +26,7 @@ export default function (state = defaultState, action) {
       return newState
     case types.POST_OPPOSING_BET_INFO:
       newState.destinationTag = action.payload.destinationTag
-      newstate.bettingTeam - action.payload.bettingTeam
+      newState.bettingTeam = action.payload.bettingTeam
       newState.address = action.payload.address
       newState.betInfoError = action.payload.betInfoError
       return newState

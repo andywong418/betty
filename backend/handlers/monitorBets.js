@@ -3,10 +3,10 @@ const debug = require('debug')('betty:bets')
 const RippleAPI = require('ripple-lib').RippleAPI
 const rippleServer = 'wss://s.altnet.rippletest.net:51233' // public rippled testnet server
 const ripple = new RippleAPI({ server: rippleServer })
-const {validateBet, validateMatch, isEmpty} = require('../common/Validate')
+const {validateMatch, isEmpty} = require('../common/Validate')
 const {sendEmail} = require('../common/sendEmail')
 
-function hex2a(hexx) {
+function hex2a (hexx) {
   var hex = hexx.toString() // force conversion
   var str = ''
   for (var i = 0; (i < hex.length && hex.substr(i, 2) !== '00'); i += 2) {
@@ -44,10 +44,11 @@ async function monitorBets (consensus) {
             if (betObj !== 'nothing') {
               // validate this bet
               betObj = JSON.parse(betObj)
+              betObj.amount = Number(transaction.Amount)
               // Add listeners for bet Id
               try {
                 consensus.addBetListeners(betObj.destinationTag)
-                const matchId = await consensus.validateInfo(betObj, validateBet, 'validatingBetObj', 'firstValidateBetInfo', betId, `secondValidateBetInfo`, 'pendingBetChecked', betObj.matchId)
+                const matchId = await consensus.validateInfo(betObj, 'validatingBetObj', 'firstValidateBetInfo', betId, `secondValidateBetInfo`, 'pendingBetChecked', betObj.matchId)
                 console.log('post consensus on bet', matchId)
                 const match = await validateMatch({matchId})
                 consensus.addMatchListeners(matchId)
@@ -70,6 +71,11 @@ async function monitorBets (consensus) {
                 }
                 debug('finalBet', finalBet)
                 await db.addBet(finalBet.destinationTag, finalBet)
+                if (finalBet.opposingBet) {
+                  const opposingBet = db.getBet(finalBet.opposingBet)
+                  opposingBet.opposingBet = finalBet.destinationTag
+                  db.addBet(opposingBet.destinationTag, opposingBet)
+                }
                 debug(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
                 sendEmail({
                   to: finalBet.email,
@@ -95,7 +101,7 @@ async function monitorBets (consensus) {
             sendEmail({
               to: pendingBet.email,
               subject: 'Error submitting bet to Betty',
-              text: `Transaction failed. Error: ${err}`
+              text: `Transaction failed. Error: ${err}. Please try to send the transaction again!`
             })
           }
         }

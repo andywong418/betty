@@ -46,6 +46,7 @@ router.get('/bets', async (req, res) => {
   // Returns lists of bets made which are stored in levelDB.
   const newBets = {}
   const bets = await BettyDB.getAllBets()
+  console.log('bets', bets)
   for (let key in bets) {
     const match = await BettyDB.getMatch(bets[key].matchId)
     bets[key].match = match

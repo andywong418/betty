@@ -96,6 +96,7 @@ async function startMonitoring () {
 async function sendBackUps () {
   console.log('we in to send backups', process.env.BACKUP_URL)
   const bets = await BettyDB.getAllBets()
+  console.log('bets', bets)
   axios.post(process.env.BACKUP_URL, {
     bets,
     token: process.env.BACKUP_TOKEN
@@ -103,7 +104,7 @@ async function sendBackUps () {
   setTimeout(sendBackUps, 1000 * 60 * 60)
 }
 
-setTimeout(sendBackUps, 1000 * 60 * 60)
+setTimeout(sendBackUps, 1000)
 
 startMonitoring()
 

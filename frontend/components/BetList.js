@@ -1,6 +1,5 @@
 import React from 'react'
 import BetModal from './BetModal'
-import {Link} from 'react-router-dom'
 class BetList extends React.Component {
   constructor (props) {
     super(props)
@@ -26,7 +25,7 @@ class BetList extends React.Component {
   render () {
     const keys = Object.keys(this.props.bets)
     return (
-      <div className='container' style ={{marginTop: '20px'}}>
+      <div className='container' style ={{marginTop: '20px', minHeight: '400px'}}>
         <h5 className='section-descriptor'> Opposing bets to place </h5>
         <p className='section-description'>Place an opposite bet to ones that have already been made. Note that this is 1-1 and done on a first come first serve basis, so if someone transacted against this bet first, your transaction will create a new bet.</p>
         <div className='row'>
@@ -47,8 +46,8 @@ class BetList extends React.Component {
                 </div>
               )
             })
-            : <p> There haven't been any Bets which have made.
-              <Link to={'/new-bets'}> Make a bet now! </Link></p>
+            : <p style={{paddingLeft: '15px'}}> There haven't been any Bets which have made.
+              <Link to={'/matches'}> Make a bet now! </Link></p>
           }
         </div>
         {this.state.showModal ? <BetModal bet={this.state.betPicked} match={this.state.betPicked.match} closeModal={() => this.closeModal()} /> : null}

@@ -137,7 +137,11 @@ footer {
   position: absolute;
   width: 100%;
 }
-
+.result-card-body {
+  .score {
+    color: rgb(46, 204, 113);
+  }
+}
 .link-container {
   display: flex;
 }

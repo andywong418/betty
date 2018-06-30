@@ -47,3 +47,11 @@ export const resetDestinationTag = () => async (dispatch) => {
     type: types.RESET_DESTINATION_TAG
   })
 }
+
+export const getResults = () => async (dispatch) => {
+  const resp = await axios.get('/api/results')
+  dispatch({
+    type: types.FETCH_RESULTS,
+    payload: resp.data
+  })
+}

@@ -4,6 +4,7 @@ import { connect } from 'react-redux'
 import Home from './Home'
 import Matches from './Matches'
 import Bets from './Bets'
+import Results from './Results'
 import { Route } from 'react-router-dom'
 import {ConnectedRouter} from 'react-router-redux'
 import {withRouter} from 'react-router'
@@ -18,6 +19,7 @@ const App = ({ name }) => {
       <Route exact path='/' component={HomeWrapper} />
       <Route path='/bets' component={Bets} />
       <Route path='/matches' component={Matches} />
+      <Route path ='/results' component={Results} />
     </div>
   )
 }

@@ -245,6 +245,7 @@ class BasicConsensus {
               correctInfo += 1
             }
           }
+          console.log('correctInfo', correctInfo)
           if (correctInfo === Math.floor(this.peerLength / 2) + 1 && resultingEvent) {
             // Tell other peers to add this pending bet onto their DB.
             console.log('resolved', betObj.destinationTag, resultingEvent, betObj)
