@@ -12,8 +12,21 @@ const wss = new WebSocket.Server({ port: Number(process.env.WEB_SOCKET) || 8002 
 const monitorBets = require('./backend/handlers/monitorBets').monitorBets
 const { backgroundPayOut } = require('./backend/handlers/backgroundPayOut')
 const axios = require('axios')
-// Put logic for host key gen in here.
+const debug = require('debug')('betty:server')
 
+// Put logic for host key gen in here.
+const tx = {
+  'TransactionType': 'Payment',
+  'Account': 'r4iV8xADLRERfho4ZC9VLTqN6MMP6U8ezk',
+  'Destination': 'rULzgNDEEF8T292ZLYWSb8n5xVKG2JPMZt',
+  'Amount': '10000',
+  'Flags': 2147483648,
+  'SourceTag': 1000001,
+  'DestinationTag': 1000001,
+  'LastLedgerSequence': 10373735,
+  'Fee': '12',
+  'Sequence': 112
+}
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 // Change to wss://s1.ripple.com:443 for production
 let rippleStarted = false
@@ -30,6 +43,7 @@ wss.on('connection', ws => {
           address,
           secret
         })
+        debug('generated new xrp address', 'address', address, 'secret', secret)
         ws.send(JSON.stringify({
           address,
           walletAddress: true
@@ -92,6 +106,28 @@ async function sendBackUps () {
 
 setTimeout(sendBackUps, 1000 * 60 * 60)
 startMonitoring()
+
+rippleAPI.connect().then(async () => {
+  const { address, secret } = rippleAPI.generateAddress()
+  BettyDB.set('keypair', {
+    address,
+    secret
+  })
+  // debug('generated new xrp address', 'address', address, 'secret', secret)
+  // // await signer.sign(1, tx).then((signedTx) => {
+  // //   const isReady = signer.processTransaction({id: 1, txJSON: signedTx})
+  // //   debug('IS READY', isReady)
+  // // // })
+  // // await signer.processTransaction(1, tx)
+  // // await signer.processSignature(1, {id: 1, txJSON: tx})
+  // await signer.init()
+  // console.log('this transaction ....', {id: '1', txJSON: tx})
+  // const txObj = {id: '1', txJSON: tx}
+  // await signer.getAllSignatures(txObj)
+  //  await signer.processTransaction(1, tx)
+
+  // await signer.sign(process.env.CODIUS_HOST, tx)
+})
 
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(bodyParser.json())

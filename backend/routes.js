@@ -10,7 +10,7 @@ const RippleAPI = require('ripple-lib').RippleAPI
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 const broker = require('./common/broker')
 const Consensus = require('./common/BasicConsensus')
-const consensus = new Consensus(broker)
+const consensus = new Consensus(broker, rippleAPI)
 const {validatePendingBet, validateOpposingPendingBet} = require('./common/Validate')
 async function startListeners () {
   await consensus.loadListeners()
