@@ -17,7 +17,7 @@ class BasicConsensus {
       this.addPendingBetListeners(betId)
     })
     this.broker.receive('betEpoch', 'addBetListeners', (i, betId) => {
-      this.addBetListeners(betId)
+      this.x(betId)
     })
     this.broker.receive('matchEpoch', 'addMatchListeners', (i, matchId) => {
       this.addMatchListeners(matchId)
@@ -26,32 +26,31 @@ class BasicConsensus {
 
   addPendingBetListeners (betId) {
     // Add this to all the different hosts.
-    this.broker.receive(`${betId}`, 'firstValidatePendingBetInfo', async (i, betObj) => {
+    this.broker.receive(betId, 'firstValidatePendingBetInfo', async (i, betObj) => {
       console.log('ever getting in?')
       betObj = JSON.parse(betObj)
 
       const validated = await validatePendingBet(betObj)
-      this.broker.broadcast(`${betObj.destinationTag}`, `secondValidatePendingBetInfo`, JSON.stringify({validated}))
+      this.broker.sendTo(`${betObj.destinationTag}`, `secondValidatePendingBetInfo`, i, JSON.stringify({validated}))
     })
-    this.broker.receive(`${betId}`, 'addPendingBet', async (i, betStr) => {
+    this.broker.receive(betId, 'addPendingBet', async (i, betStr) => {
       const betObj = JSON.parse(betStr)
-      console.log('pending betObj', betObj)
       try {
         this.db.addPendingBet(betObj['destinationTag'], betObj)
       } catch (err) {
         console.log('error adding pending bet', err)
       }
     })
-    this.broker.receive(`${betId}`, 'removePendingBet', (i, betId) => {
+    this.broker.receive(betId, 'removePendingBet', (i, betId) => {
       betId = JSON.parse(betId)
       betId = betId.betId
       this.db.removePendingBet(betId)
     })
-    this.broker.receive(`${betId}`, 'firstValidateOpposingPendingBetInfo', async (i, betObj) => {
+    this.broker.receive(betId, 'firstValidateOpposingPendingBetInfo', async (i, betObj) => {
       betObj = JSON.parse(betObj)
       console.log('betObj opposing', betObj)
       const validated = await validateOpposingPendingBet(betObj)
-      this.broker.broadcast(`${betObj.destinationTag}`, `secondValidateOpposingPendingBetInfo`, JSON.stringify({validated}))
+      this.broker.sendTo(`${betObj.destinationTag}`, `secondValidateOpposingPendingBetInfo`, i, JSON.stringify({validated}))
     })
   }
   async collectMultiSign (txJson, ripple, betId) {
@@ -60,12 +59,12 @@ class BasicConsensus {
         received: 0,
         signature: {}
       }
-      this.broker.broadcast(`${betId}`, 'multisign', JSON.stringify({
+      this.broker.broadcast(betId, 'multisign', JSON.stringify({
         txJson,
         ripple,
         betId
       }))
-      this.broker.receive(`${betId}`, 'secondSignObj', (i, signature) => {
+      this.broker.receive(betId, 'secondSignObj', (i, signature) => {
         if (signature) {
           this.multiSignObj[betId]['received'] += 1
           this.multiSignObj[betId]['signature'][i] = signature
@@ -89,13 +88,13 @@ class BasicConsensus {
     ])
   }
   addBetListeners (betId) {
-    this.broker.receive(`${betId}`, 'firstValidateBetInfo', async (i, betObj) => {
+    this.broker.receive(betId, 'firstValidateBetInfo', async (i, betObj) => {
       betObj = JSON.parse(betObj)
       const validated = await validateBet(betObj)
-      this.broker.broadcast(`${betObj.destinationTag}`, `secondValidateBetInfo`, JSON.stringify({validated}))
+      this.broker.sendTo(`${betObj.destinationTag}`, `secondValidateBetInfo`, i, JSON.stringify({validated}))
     })
 
-    this.broker.receive(`${betId}`, 'addBet', async (i, betObj) => {
+    this.broker.receive(betId, 'addBet', async (i, betObj) => {
       betObj = JSON.parse(betObj)
       try {
         console.log('adding bet', betObj)
@@ -109,13 +108,12 @@ class BasicConsensus {
         console.log('error adding bet', err)
       }
     })
-    this.broker.receive(`${betId}`, 'multiSign', async (i, txObj) => {
+    this.broker.receive(betId, 'multiSign', async (i, txObj) => {
       const {txJSON, ripple, betId} = JSON.parse(txObj)
       const signature = await multiSign(txJSON, ripple)
-      this.broker.broadcast(`${betId}`, 'secondSignObj', signature)
+      this.broker.sendTo(betId, 'secondSignObj', i, signature)
     })
-    this.broker.receive(`${betId}`, 'firstBackgroundConsensus', async (i, betId) => {
-      console.log('check bet ID', betId)
+    this.broker.receive(betId, 'firstBackgroundConsensus', async (i, betId) => {
       const bet = await this.db.getBet(betId)
       if (!isEmpty(bet)) {
         const match = await axios.get(`${oracle}/game/${bet.matchId}`)
@@ -125,7 +123,7 @@ class BasicConsensus {
         // otherwise resolve/ pay out via multisign if there is an opposing bet
         // refund through multisign if there isn't
         if (bet.status === 'resolved' || bet.status === 'refunded' || !match.data.winner) {
-          this.broker.broadcast(`${betId}`, `secondBackgroundConsensus`, JSON.stringify({
+          this.broker.sendTo(betId, `secondBackgroundConsensus`, i, JSON.stringify({
             result: 'ignore'
           }))
         }
@@ -135,24 +133,24 @@ class BasicConsensus {
             // Check winner to pay out winner. Add up amounts and transfer.
             const opposingBet = await this.db.getBet(bet.opposingBet)
             if (opposingBet.status !== 'resolved' || opposingBet.status !== 'refunded') {
-              this.broker.broadcast(`${betId}`, `secondBackgroundConsensus`, JSON.stringify({
+              this.broker.sendTo(betId, `secondBackgroundConsensus`, i, JSON.stringify({
                 result: 'resolve'
               }))
             } else {
-              this.broker.broadcast(`${betId}`, `secondBackgroundConsensus`, JSON.stringify({
+              this.broker.sendTo(betId, `secondBackgroundConsensus`, i, JSON.stringify({
                 result: 'ignore'
               }))
             }
             // Change status to resolved
           } else {
             // Change status to refunded.
-            this.broker.broadcast(`${betId}`, `secondBackgroundConsensus`, JSON.stringify({
+            this.broker.sendTo(betId, `secondBackgroundConsensus`, i, JSON.stringify({
               result: 'refund'
             }))
           }
         }
       } else {
-        this.broker.broadcast(`${betId}`, `secondBackgroundConsensus`, JSON.stringify({
+        this.broker.sendTo(betId, `secondBackgroundConsensus`, i, JSON.stringify({
           result: 'ignore'
         }))
       }
@@ -167,7 +165,7 @@ class BasicConsensus {
       if (!isEmpty(match)) {
         validated = true
       }
-      this.broker.broadcast(`${matchId.matchId}`, `secondValidateMatchInfo`, JSON.stringify({validated}))
+      this.broker.sendTo(`${matchId.matchId}`, `secondValidateMatchInfo`, i, JSON.stringify({validated}))
     })
     this.broker.receive(`${matchId}`, 'addMatch', (i, matchObj) => {
       matchObj = JSON.parse(matchObj)
@@ -177,14 +175,8 @@ class BasicConsensus {
   }
 
   async loadListeners () {
-    const pendingBets = await this.db.getAllPendingBets()
     const bets = await this.db.getAllBets()
     const matches = await this.db.getAllMatches()
-
-    for (let key in pendingBets) {
-      const pendingBet = pendingBets[key]
-      this.addPendingBetListeners(pendingBet.destinationTag)
-    }
 
     for (let key in bets) {
       const bet = bets[key]
@@ -196,7 +188,9 @@ class BasicConsensus {
       this.addMatchListeners(match.id)
     }
   }
-
+  addListener (epoch, tag, handler) {
+    this.broker.receive(epoch, tag, handler)
+  }
   modeArray (array) {
     if (array.length === 0) { return null }
     let modeMap = {}
@@ -230,10 +224,11 @@ class BasicConsensus {
       }
       this.betObjConsensus[betObj.destinationTag][consensusField] = {}
       // First stage
-      this.broker.broadcast(`${receiveEpoch}`, sendEvent, JSON.stringify(betObj))
+      this.broker.broadcast(receiveEpoch, sendEvent, JSON.stringify(betObj))
       // Second stage listener
-      this.broker.receive(`${receiveEpoch}`, `${receiveEvent}`, (i, validateResult) => {
+      this.broker.receive(receiveEpoch, receiveEvent, (i, validateResult) => {
         validateResult = JSON.parse(validateResult).validated
+
         if (!this.betObjConsensus[betObj.destinationTag][consensusField].hasOwnProperty(i)) {
           this.betObjConsensus[betObj.destinationTag][consensusField][i] = validateResult
           this.betObjConsensus[betObj.destinationTag]['received'] += 1
@@ -247,10 +242,9 @@ class BasicConsensus {
               correctInfo += 1
             }
           }
-          if (correctInfo >= Math.floor(this.peerLength / 2) + 1 && resultingEvent) {
+          if (correctInfo === Math.floor(this.peerLength / 2) + 1 && resultingEvent) {
             // Tell other peers to add this pending bet onto their DB.
             console.log('resolved', betObj.destinationTag, resultingEvent, betObj)
-            this.sendInfoToPeers(betObj.destinationTag, resultingEvent, betObj)
             resolve(resolveValue)
           }
           reject(new Error('failed to validate in consensus'))
@@ -268,10 +262,6 @@ class BasicConsensus {
         }, 10000)
       })
     ])
-  }
-
-  sendInfoToPeers (epoch, event, message) {
-    this.broker.broadcast(epoch.toString(), event, JSON.stringify(message))
   }
 
   async backgroundConsensus (betId) {
@@ -314,6 +304,14 @@ class BasicConsensus {
         }, 10000)
       })
     ])
+  }
+
+  sendInfoToPeers (epoch, event, message) {
+    this.broker.broadcast(epoch.toString(), event, message)
+  }
+
+  sendInfoToPeer (epoch, event, i, message) {
+    this.broker.sendTo(epoch.toString(), event, i, message)
   }
 }
 module.exports = BasicConsensus

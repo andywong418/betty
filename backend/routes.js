@@ -67,9 +67,12 @@ router.post('/bet-info', async (req, res) => {
     // TODO: Add all info into DB into pending DB.
     req.body['destinationTag'] = destinationTag
     console.log('destinationTag', destinationTag)
-    consensus.sendInfoToPeers('pendingEpoch', 'addPendingBetListeners', destinationTag)
-    await consensus.validateInfo(req.body, validatePendingBet, 'validatePendingObj', 'firstValidatePendingBetInfo', `${destinationTag}`, `secondValidatePendingBetInfo`, 'addPendingBet', true)
-    res.send(req.body)
+    if (validatePendingBet(req.body)) {
+      BettyDB.addPendingBet(destinationTag, req.body)
+      res.send(req.body)
+    } else {
+      throw new Error('Pending bet info not valid')
+    }
   }).catch(err => {
     console.log('err', err)
     // Send back validation object
@@ -87,9 +90,12 @@ router.post('/opposing-bet-info', async (req, res) => {
   }).then(async accountInfo => {
     const destinationTag = farmhash.hash32(hash(req.body))
     req.body['destinationTag'] = destinationTag
-    consensus.sendInfoToPeers('pendingEpoch', 'addPendingBetListeners', destinationTag)
-    await consensus.validateInfo(req.body, validateOpposingPendingBet, 'validateOpposingPendingObj', 'firstValidateOpposingPendingBetInfo', `${destinationTag}`, `secondValidateOpposingPendingBetInfo`, 'addPendingBet', true)
-    res.send(req.body)
+    if (validateOpposingPendingBet(req.body)) {
+      BettyDB.addPendingBet(destinationTag, req.body)
+      res.send(req.body)
+    } else {
+      throw new Error('Pending bet info not valid')
+    }
   }).catch(err => {
     console.log('err', err)
     res.send({

@@ -59,7 +59,7 @@ wss.on('connection', ws => {
       })
       rippleStarted = true
       monitorBets(consensus)
-      // backgroundPayOut(consensus)
+      backgroundPayOut(consensus)
     }
     if (message.shareAddressWithPeer) {
       const {address, hostList} = message

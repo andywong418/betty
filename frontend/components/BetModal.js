@@ -46,7 +46,6 @@ class BetModal extends React.Component {
       })
       this.setState({
         address: '',
-        bettingTeam: null,
         errorMessage: null,
         email: '',
         name: ''
@@ -62,7 +61,6 @@ class BetModal extends React.Component {
       })
       this.setState({
         address: '',
-        bettingTeam: null,
         errorMessage: null,
         email: '',
         name: ''
@@ -93,7 +91,7 @@ class BetModal extends React.Component {
                 {
                   destinationTag
                     ? <div>
-                      <span> You bet on { bettingTeam }! You can now send a transaction from a wallet of your choice. The maximum bet is 100 XRP. In your transaction, please specify: </span>
+                      <span> You bet on { bettingTeam }! You can now send a transaction from a wallet of your choice. The maximum bet is 1 XRP. In your transaction, please specify: </span>
                       <ul className='bet-info'>
                         <li className='destination-address'> Destination XRP address: <span> { walletAddress } </span></li>
                         <li className='destination-tag'> Destination Tag: <span> {destinationTag} </span> </li>

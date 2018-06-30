@@ -3,7 +3,7 @@ const oracle = process.env.ORACLE
 const db = require('../common/BettyDB.js')
 const debug = require('debug')('betty:bets')
 const TRANSACTION_COST = 100
-const MAX_BET = 100000000
+const MAX_BET = 1000000
 const validatePendingBet = async (betObj) => {
   const match = await axios.get(oracle + `/game/${betObj.matchId}`)
   if (new Date(match.data.matchTime) <= new Date()) {
@@ -44,7 +44,7 @@ async function validateBet (bet) {
   if (Number(bet.amount) > MAX_BET) {
     return false
   }
-
+  console.log('validating bet', bet)
   if (bet.opposingBet) {
     // check if bet matches opposing bet within a certain bound
     const opposingBet = await db.getBet(bet.opposingBet)
@@ -63,18 +63,8 @@ async function validateBet (bet) {
   }
   const checkBet = await db.get(bet.destinationTag)
   if (!isEmpty(checkBet)) {
+    console.log('here?')
     console.log(`Bet ${bet.destinationTag} has already been placed`)
-    return false
-  }
-
-  const pendingBet = await db.getPendingBet(bet.destinationTag)
-  if (isEmpty(pendingBet)) {
-    console.log(`Bet ${bet.destinationTag} is not defined`)
-    return false
-  }
-
-  if (pendingBet.address !== bet.address) {
-    console.log(`Pending bet key and actual key is not the same`)
     return false
   }
   debug(`Bet ${bet.destinationTag} is valid`)
