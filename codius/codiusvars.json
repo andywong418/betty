@@ -1,0 +1,10 @@
+{
+  "public": {
+    "PORT": {
+      "value": 3000
+    }
+  },
+  "private": {
+    "User"
+  }
+}
