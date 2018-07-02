@@ -66,7 +66,6 @@ router.post('/bet-info', async (req, res) => {
     const destinationTag = farmhash.hash32(hash(req.body))
     // TODO: Add all info into DB into pending DB.
     req.body['destinationTag'] = destinationTag
-    console.log('destinationTag', destinationTag)
     if (validatePendingBet(req.body)) {
       BettyDB.addPendingBet(destinationTag, req.body)
       res.send(req.body)

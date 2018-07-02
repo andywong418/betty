@@ -15,18 +15,7 @@ const axios = require('axios')
 const debug = require('debug')('betty:server')
 
 // Put logic for host key gen in here.
-const tx = {
-  'TransactionType': 'Payment',
-  'Account': 'r4iV8xADLRERfho4ZC9VLTqN6MMP6U8ezk',
-  'Destination': 'rULzgNDEEF8T292ZLYWSb8n5xVKG2JPMZt',
-  'Amount': '10000',
-  'Flags': 2147483648,
-  'SourceTag': 1000001,
-  'DestinationTag': 1000001,
-  'LastLedgerSequence': 10373735,
-  'Fee': '12',
-  'Sequence': 112
-}
+
 const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
 // Change to wss://s1.ripple.com:443 for production
 let rippleStarted = false
@@ -87,8 +76,22 @@ wss.on('connection', ws => {
 async function startMonitoring () {
   if (!rippleStarted) {
     const multiSignAddr = await BettyDB.get('sharedWalletAddress')
-    await BettyDB.addBet(688897978, bet)
-    await BettyDB.addBet(898312839, opposingBet)
+    // await BettyDB.set('pendingBets', {})
+    // const bet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'France', matchId: 49,
+    //   email: 'androswong418@gmail.com', name: 'Vernon', destinationTag: 688897978, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa',
+    //   opposingBet: 898312839 }
+    // const opposingBet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'Argentina', matchId: 49,
+    //   email: 'androswong418@gmail.com', name: 'Jon', destinationTag: 898312839, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa',
+    //   opposingBet: 688897978 }
+    // const refundBet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'France', matchId: 49,
+    //   email: 'androswong418@gmail.com', name: 'Dros', destinationTag: 688897980, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa'
+    // }
+    // await BettyDB.addBet(688897978, bet)
+    // await BettyDB.addBet(898312839, opposingBet)
+    // await BettyDB.addBet(688897980, refundBet)
+
+    // const bets = await BettyDB.getAllBets()
+    // console.log('bets', bets)
     if (multiSignAddr) {
       monitorBets(consensus)
       backgroundPayOut(consensus)
@@ -97,27 +100,17 @@ async function startMonitoring () {
 }
 
 async function sendBackUps () {
-  console.log('we in to send backups', process.env.BACKUP_URL)
   const bets = await BettyDB.getAllBets()
   axios.post(process.env.BACKUP_URL, {
     bets,
     token: process.env.BACKUP_TOKEN
   })
-  setTimeout(sendBackUps, 1000 * 60 * 60)
+  setTimeout(sendBackUps, 1000 * 60 * 30)
 }
 
-setTimeout(sendBackUps, 1000 * 60 * 60)
-const bet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'France', matchId: 49,
-email: 'vtj2105@columbia.edu', name: 'Vernon', destinationTag: 688897978, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa',
-opposingBet: 898312839 }
-const opposingBet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'Germany', matchId: 49,
-email: 'vtj2105@columbia.edu', name: 'Jon', destinationTag: 898312839, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa',
-opposingBet: 688897978 }
-
+setTimeout(sendBackUps, 1000 * 60 * 20 * Math.random())
 
 startMonitoring()
-
-
 
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(bodyParser.json())

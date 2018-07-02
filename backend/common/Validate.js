@@ -44,7 +44,6 @@ async function validateBet (bet) {
   if (Number(bet.amount) > MAX_BET) {
     return false
   }
-  console.log('validating bet', bet)
   if (bet.opposingBet) {
     // check if bet matches opposing bet within a certain bound
     const opposingBet = await db.getBet(bet.opposingBet)
@@ -63,7 +62,6 @@ async function validateBet (bet) {
   }
   const checkBet = await db.get(bet.destinationTag)
   if (!isEmpty(checkBet)) {
-    console.log('here?')
     console.log(`Bet ${bet.destinationTag} has already been placed`)
     return false
   }

@@ -27,7 +27,7 @@ class MatchList extends React.Component {
 
   render () {
     return (
-      <div className='container' style ={{marginTop: '20px'}}>
+      <div className='container' style ={{marginTop: '20px', minHeight: '400px'}}>
         <h5 className='section-descriptor'> Matches to be played </h5>
         <p className='section-description'> Place a new bet on matches that are yet to have played. The maximum is 1 XRP per match.</p>
         <div className='row'>
@@ -35,6 +35,7 @@ class MatchList extends React.Component {
             return (
               <div className='match-item-container col-4' key={match.id}>
                 <div className='match-item' key={match.team1 + match.team2}>
+                  <p><strong>{match.round}</strong></p>
                   <p>
                     <span>MatchTime: </span>
                     <span style={{color: '#2ecc71'}}> {dateTime(match.matchTime)}  </span>
