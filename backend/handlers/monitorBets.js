@@ -5,6 +5,9 @@ const rippleServer = 'wss://s.altnet.rippletest.net:51233' // public rippled tes
 const ripple = new RippleAPI({ server: rippleServer })
 const {validateMatch, isEmpty} = require('../common/Validate')
 const {sendEmail} = require('../common/sendEmail')
+const Multisign = require('../common/MultisignClass.js')
+const broker = require('../common/broker.js')
+const signer = new Multisign(broker, ripple)
 
 function hex2a (hexx) {
   var hex = hexx.toString() // force conversion
@@ -14,7 +17,41 @@ function hex2a (hexx) {
   }
   return str
 }
+async function refundPendingBet (consensus, betObj, address, transaction) {
+  const amount = Number(transaction.Amount) / (1000000)
+  const payment = {
+    source: {
+      address,
+      maxAmount: {
+        value: amount.toString(),
+        currency: 'XRP'
+      }
+    },
+    destination: {
+      address: transaction.Account,
+      amount: {
+        value: amount.toString(),
+        currency: 'XRP'
+      },
+      tag: betObj.destinationTag
+    },
+    memos: [
+      {
+        data: 'refund',
+        format: 'plain/text',
+        type: 'result'
+      }
+    ]
+  }
+  await ripple.connect()
+  const prepared = await signer.preparePayment(payment)
 
+  consensus.addListener(betObj.destinationTag, 'multiSignForPendingRefund', async (i, txStr) => {
+    const txJSON = JSON.parse(txStr)
+    await signer.processTransaction(i, txJSON, betObj.destinationTag, 'refundPendingBet')
+  })
+  await consensus.collectMultisign(prepared, betObj.destinationTag, 'refundPendingBet')
+}
 async function monitorBets (consensus) {
   ripple.connect().then(async () => {
     const {address} = await db.get('sharedWalletAddress')
@@ -31,7 +68,6 @@ async function monitorBets (consensus) {
           consensus.addListener(betId, 'queryPendingBet', async (i, betId) => {
             const pendingBet = await db.getPendingBet(betId)
             if (!isEmpty(pendingBet)) {
-              console.log('pending Bet?', pendingBet)
               consensus.sendInfoToPeer(betId, 'pendingBetResponse', i, JSON.stringify(pendingBet))
             } else {
               consensus.sendInfoToPeer(betId, 'pendingBetResponse', i, 'nothing')
@@ -39,16 +75,15 @@ async function monitorBets (consensus) {
           })
 
           consensus.addListener(betId, 'pendingBetResponse', async (i, betObj) => {
-            console.log('betOBJ', betObj)
             if (betObj !== 'nothing') {
               // validate this bet
               betObj = JSON.parse(betObj)
               betObj.amount = Number(transaction.Amount)
+              betObj.address = transaction.Account
               // Add listeners for bet Id
               try {
                 consensus.addBetListeners(betObj.destinationTag)
                 const matchId = await consensus.validateInfo(betObj, 'validatingBetObj', 'firstValidateBetInfo', betId, `secondValidateBetInfo`, 'pendingBetChecked', betObj.matchId)
-                console.log('post consensus on bet', matchId)
                 const match = await validateMatch({matchId})
                 consensus.addMatchListeners(matchId)
                 await consensus.validateInfo({matchId, destinationTag: matchId}, 'validatingMatchObj', 'firstValidateMatchInfo', matchId, `secondValidateMatchInfo`, 'matchChecked', true)
@@ -84,7 +119,7 @@ async function monitorBets (consensus) {
               } catch (err) {
                 console.log(err)
                 // Refund
-
+                await refundPendingBet(consensus, betObj, address, transaction)
                 sendEmail({
                   to: betObj.email,
                   subject: 'Error submitting bet to Betty',
@@ -99,7 +134,7 @@ async function monitorBets (consensus) {
           const betId = transaction.DestinationTag
           const pendingBet = await db.getPendingBet(betId)
           if (!isEmpty(pendingBet)) {
-            // Refund
+            // No Refund because an error means
             sendEmail({
               to: pendingBet.email,
               subject: 'Error submitting bet to Betty',
@@ -110,33 +145,44 @@ async function monitorBets (consensus) {
       }
       if (transaction.Account === address) {
         const bet = await db.getBet(transaction.DestinationTag)
-        const winnings = Number(bet.amount) * 2 / 1000000
-        console.log('unique memo', hex2a(transaction.Memos[0].Memo.MemoData))
-        if (hex2a(transaction.Memos[0].Memo.MemoData) === 'resolve') {
-          const newBet = {
-            ...bet,
-            status: 'resolved'
+        const pendingBet = await db.getPendingBet(transaction.DestinationTag)
+        if (!isEmpty(pendingBet)) {
+          const refund = Number(transaction.Amount) / 1000000
+          if (hex2a(transaction.Memos[0].Memo.MemoData) === 'refund') {
+            sendEmail({
+              to: pendingBet.email,
+              subject: 'Bet refunded!',
+              text: `Check your account. You should have been refunded ${refund} XRP.`
+            })
           }
-          console.log('newBET?!', newBet)
-          await db.addBet(newBet.destinationTag, newBet)
-          sendEmail({
-            to: bet.email,
-            subject: 'Successfully won bet!',
-            text: `Check your account. You should have won ${winnings} XRP`
-          })
         }
-        if (hex2a(transaction.Memos[0].Memo.MemoData) === 'refund') {
-          const newBet = {
-            ...bet,
-            status: 'refunded'
+        if (!isEmpty(bet)) {
+          const winnings = Number(bet.amount) * 2 / 1000000
+          if (hex2a(transaction.Memos[0].Memo.MemoData) === 'resolve') {
+            const newBet = {
+              ...bet,
+              status: 'resolved'
+            }
+            await db.addBet(newBet.destinationTag, newBet)
+            sendEmail({
+              to: bet.email,
+              subject: 'Successfully won bet!',
+              text: `Check your account. You should have won ${winnings} XRP sent from ${consensus.peerLength} running contracts.`
+            })
           }
-          await db.addBet(newBet.destinationTag, newBet)
-          const refund = Number(bet.amount) / 1000000
-          sendEmail({
-            to: bet.email,
-            subject: 'Bet refunded!',
-            text: `Check your account. You should have refunded ${refund} XRP`
-          })
+          if (hex2a(transaction.Memos[0].Memo.MemoData) === 'refund') {
+            const newBet = {
+              ...bet,
+              status: 'refunded'
+            }
+            await db.addBet(newBet.destinationTag, newBet)
+            const refund = Number(bet.amount) / 1000000
+            sendEmail({
+              to: bet.email,
+              subject: 'Bet refunded!',
+              text: `Check your account. You should have been refunded ${refund} XRP from ${consensus.peerLength} running contracts`
+            })
+          }
         }
       }
     })

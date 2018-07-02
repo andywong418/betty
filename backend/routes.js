@@ -46,7 +46,6 @@ router.get('/bets', async (req, res) => {
   // Returns lists of bets made which are stored in levelDB.
   const newBets = {}
   const bets = await BettyDB.getAllBets()
-  console.log('bets', bets)
   for (let key in bets) {
     const match = await BettyDB.getMatch(bets[key].matchId)
     bets[key].match = match
@@ -67,7 +66,6 @@ router.post('/bet-info', async (req, res) => {
     const destinationTag = farmhash.hash32(hash(req.body))
     // TODO: Add all info into DB into pending DB.
     req.body['destinationTag'] = destinationTag
-    console.log('destinationTag', destinationTag)
     if (validatePendingBet(req.body)) {
       BettyDB.addPendingBet(destinationTag, req.body)
       res.send(req.body)

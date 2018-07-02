@@ -14,7 +14,7 @@ class BasicConsensus {
     this.peerLength = JSON.parse(process.env.CONTRACT_INSTANCES).length
     this.betObjConsensus = {}
     // load all bets and create a listener for each
-    this.loadListeners()
+    // this.loadListeners()
     this.signObj = {}
     this.signer = new Multisign(broker, ripple)
   }
@@ -35,59 +35,7 @@ class BasicConsensus {
       this.db.removePendingBet(betId)
     })
   }
-  async collectMultisign (txJson, ripple, betId) {
-    const signProm = new Promise((resolve, reject) => {
-      // this.multisignObj[betId] = {
-      //   received: 0,
-      //   txObj: txJson
-      // }
-      // Request other hosts to sign the transaction
-      console.log('TX JSON', txJson)
-      this.signObj[betId] = {
-        received: 0,
-        signatures: {
 
-        }
-      }
-
-      this.broker.broadcast(`${betId}`, 'multisign', JSON.stringify(txJson))
-      this.broker.receive(`${betId}`, 'signature', async (i, signedTxStr) => {
-
-        if (!this.signObj[betId]['signatures'].hasOwnProperty(i)) {
-          this.signObj[betId]['signatures'][i] = signedTxStr
-          this.signObj[betId]['received'] += 1
-        }
-
-        if (this.signObj[betId]['received'] === this.peerLength) {
-          const sent = await this.signer.processSignature(betId, Object.values(this.signObj[betId]['signatures']))
-          console.log('sent', sent)
-          if (sent) {
-            resolve(sent)
-          }
-        }
-        //   this.multiSignObj[betId]['received'] += 1
-        //   const newSignatures = this.signer.checkSignatures(txJson)
-        //   const
-        //   this.multiSignObj[betId]['signature'][i] = signature
-        // }
-        // if (this.multiSignObj[betId]['received'] === this.peerLength) {
-        //   // Sign/ submit
-        //   // Signature1, signature2, signature 3, signtarue 4
-        //   resolve('Final Sig')
-        // }
-      })
-    })
-    let timeout
-    return Promise.race([
-      signProm,
-      new Promise((resolve, reject) => {
-        timeout = setTimeout(function () {
-          clearTimeout(timeout)
-          return resolve(null)
-        }, 10000)
-      })
-    ])
-  }
   addBetListeners (betId) {
     this.broker.receive(betId, 'firstValidateBetInfo', async (i, betObj) => {
       betObj = JSON.parse(betObj)
@@ -109,13 +57,11 @@ class BasicConsensus {
       }
     })
     this.broker.receive(`${betId}`, 'multisign', async (i, txStr) => {
-      console.log('TRANSACTION STRING', txStr)
       const txJSON = JSON.parse(txStr)
-      await this.signer.processTransaction(i, txJSON, betId)
+      await this.signer.processTransaction(i, txJSON, betId, 'backgroundPayout')
     })
 
     this.broker.receive(`${betId}`, 'firstBackgroundConsensus', async (i, betId) => {
-      console.log('check bet ID', betId)
       const bet = await this.db.getBet(betId)
       if (!isEmpty(bet)) {
         const match = await axios.get(`${oracle}/game/${bet.matchId}`)
@@ -181,7 +127,6 @@ class BasicConsensus {
     const bets = await this.db.getAllBets()
     const matches = await this.db.getAllMatches()
     console.log('loading Listeners')
-    console.log('bets', bets)
     for (let key in bets) {
       const bet = bets[key]
       this.addBetListeners(bet.destinationTag)
@@ -218,7 +163,77 @@ class BasicConsensus {
       modes,
       maxCount
     }
+  } 
+  async collectMultisign (txJson, betId, purpose) {
+    const signProm = new Promise((resolve, reject) => {
+      // this.multisignObj[betId] = {
+      //   received: 0,
+      //   txObj: txJson
+      // }
+      // Request other hosts to sign the transaction
+      this.signObj[betId] = {
+        received: 0,
+        signatures: {
+
+        }
+      }
+      if (purpose === 'refundPendingBet') {
+        this.broker.broadcast(betId, 'multiSignForPendingRefund', JSON.stringify(txJson))
+        this.broker.receive(betId, 'signatureForPendingRefund', async (i, signedTxStr) => {
+          if (!this.signObj[betId]['signatures'].hasOwnProperty(i)) {
+            this.signObj[betId]['signatures'][i] = signedTxStr
+            this.signObj[betId]['received'] += 1
+          }
+          if (this.signObj[betId]['received'] === this.peerLength) {
+            const pendingBet = await this.db.getPendingBet(betId)
+            let sent
+            if (!isEmpty(pendingBet)) {
+              sent = await this.signer.processSignature(betId, Object.values(this.signObj[betId]['signatures']))
+            }
+            if (sent) {
+              resolve(sent)
+            }
+          }
+        })
+      } else {
+        this.broker.broadcast(`${betId}`, 'multisign', JSON.stringify(txJson))
+        this.broker.receive(`${betId}`, 'signature', async (i, signedTxStr) => {
+          if (!this.signObj[betId]['signatures'].hasOwnProperty(i)) {
+            this.signObj[betId]['signatures'][i] = signedTxStr
+            this.signObj[betId]['received'] += 1
+          }
+          if (this.signObj[betId]['received'] === this.peerLength) {
+            const sent = await this.signer.processSignature(betId, Object.values(this.signObj[betId]['signatures']))
+            console.log('sent', sent)
+            if (sent) {
+              resolve(sent)
+            }
+          }
+          //   this.multiSignObj[betId]['received'] += 1
+          //   const newSignatures = this.signer.checkSignatures(txJson)
+          //   const
+          //   this.multiSignObj[betId]['signature'][i] = signature
+          // }
+          // if (this.multiSignObj[betId]['received'] === this.peerLength) {
+          //   // Sign/ submit
+          //   // Signature1, signature2, signature 3, signtarue 4
+          //   resolve('Final Sig')
+          // }
+        })
+      }
+    })
+    let timeout
+    return Promise.race([
+      signProm,
+      new Promise((resolve, reject) => {
+        timeout = setTimeout(function () {
+          clearTimeout(timeout)
+          return resolve(null)
+        }, 10000)
+      })
+    ])
   }
+
   async validateInfo (betObj, consensusField, sendEvent, receiveEpoch, receiveEvent, resultingEvent, resolveValue) {
     // Do your own validate then
     const newProm = new Promise(async (resolve, reject) => {

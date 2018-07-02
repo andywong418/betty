@@ -19,16 +19,14 @@ async function startConsensus (consensus) {
       // remove from DB?
       continue
     }
-    console.log('bet destinationTag', bet.destinationTag)
     const result = await consensus.backgroundConsensus(bet.destinationTag)
-    console.log('got result', bet.destinationTag, result)
     if (result === 'resolve') {
       // payout to winner
       // re-query who won?
       try {
         let winnerAccount
         const opposingBet = bets[bet.opposingBet]
-        let winnings = (Number(bet.amount) + Number(opposingBet.amount)) / 1000000
+        let winnings = (Number(bet.amount) + Number(opposingBet.amount)) / (1000000 * consensus.peerLength)
         const match = await axios.get(`${oracle}/game/${bet.matchId}`)
         if (bet.bettingTeam === match.data.winner) {
           winnerAccount = bet.address
@@ -61,27 +59,27 @@ async function startConsensus (consensus) {
         }
         await ripple.connect()
         const prepared = await signer.preparePayment(payment)
-        await consensus.collectMultisign(prepared, ripple, bet.destinationTag)
+        await consensus.collectMultisign(prepared, bet.destinationTag, 'backgroundPayout')
       } catch (err) {
         console.error(err)
       }
     }
     if (result === 'refund') {
       // refund bet owner
-      console.log('bet address', bet.address, bet)
+      const amountToRefund = Number(bet.amount) / consensus.peerLength
       try {
         const payment = {
           source: {
-            address: sourceAddress,
+            address: sourceAddress.address,
             maxAmount: {
-              value: bet.amount.toString(),
+              value: amountToRefund.toString(),
               currency: 'XRP'
             }
           },
           destination: {
             address: bet.address,
             amount: {
-              value: bet.amount.toString(),
+              value: amountToRefund.toString(),
               currency: 'XRP'
             },
             tag: bet.destinationTag
@@ -96,7 +94,7 @@ async function startConsensus (consensus) {
         }
         await ripple.connect()
         const prepared = await signer.preparePayment(payment)
-        await consensus.collectMultisign(prepared, ripple, bet.destinationTag)
+        await consensus.collectMultisign(prepared, bet.destinationTag, 'backgroundPayout')
       } catch (err) {
         console.error(err)
       }
@@ -106,12 +104,13 @@ async function startConsensus (consensus) {
 
 function backgroundPayOut (consensus) {
   // Check each bet
+  const timeout = 1000 * 60 * 60 * 10 * Math.random()
   setTimeout(async () => {
     await startConsensus(consensus)
     setTimeout(function () {
       backgroundPayOut(consensus)
-    }, (1000 * 60 * 60) + (30 * 60 * 1000 * Math.random()))
-  }, 20000 * Math.random())
+    }, (1000 * 60 * 60))
+  }, timeout)
 }
 
 module.exports = {
