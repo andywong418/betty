@@ -1,11 +1,11 @@
 {
   "manifest": {
-    "name": "betty",
+    "name": "Betty",
     "version": "1.0.0",
     "machine": "small",
     "containers": [{
-      "id": "app",
-      "image": "",
+      "id": "betty",
+      "image": "<DOCKER_IMAGE>",
       "command": ["/bin/sh"],
       "workdir": "/root",
       "environment": {
@@ -14,12 +14,13 @@
         "ORACLE": "$ORACLE",
         "CONTRACT_INSTANCES": "$CONTRACT_INSTANCES",
         "USERNAME":"$USERNAME",
-        "BACKUP_URL":"BACKUP_URL",
-        "BACKUP_TOKEN":"BACKUP_TOKEN",
+        "BACKUP_URL":"$BACKUP_URL",
+        "BACKUP_TOKEN":"$BACKUP_TOKEN",
         "EMAIL_PASS": "$EMAIL_PASS",
-        "EMAIL_FROM": "$EMAIL_FROM"
+        "EMAIL_FROM": "$EMAIL_FROM",
+        "EMAIL_SERVICE": "$EMAIL_SERVICE",
+        "WEB_SOCKET": "$WEB_SOCKET"
       }
-    }],
-    "vars": {}
+    }]
   }
 }
