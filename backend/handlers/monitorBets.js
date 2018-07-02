@@ -1,89 +1,197 @@
-const axios = require('axios')
 const db = require('../common/BettyDB.js')
 const debug = require('debug')('betty:bets')
-const oracle = process.env.ORACLE
 const RippleAPI = require('ripple-lib').RippleAPI
 const rippleServer = 'wss://s.altnet.rippletest.net:51233' // public rippled testnet server
 const ripple = new RippleAPI({ server: rippleServer })
+const {validateMatch, isEmpty} = require('../common/Validate')
+const {sendEmail} = require('../common/sendEmail')
+const Multisign = require('../common/MultisignClass.js')
+const broker = require('../common/broker.js')
+const signer = new Multisign(broker, ripple)
 
-async function monitorBets () {
+function hex2a (hexx) {
+  var hex = hexx.toString() // force conversion
+  var str = ''
+  for (var i = 0; (i < hex.length && hex.substr(i, 2) !== '00'); i += 2) {
+    str += String.fromCharCode(parseInt(hex.substr(i, 2), 16))
+  }
+  return str
+}
+async function refundPendingBet (consensus, betObj, address, transaction) {
+  const amount = Number(transaction.Amount) / (1000000)
+  const payment = {
+    source: {
+      address,
+      maxAmount: {
+        value: amount.toString(),
+        currency: 'XRP'
+      }
+    },
+    destination: {
+      address: transaction.Account,
+      amount: {
+        value: amount.toString(),
+        currency: 'XRP'
+      },
+      tag: betObj.destinationTag
+    },
+    memos: [
+      {
+        data: 'refund',
+        format: 'plain/text',
+        type: 'result'
+      }
+    ]
+  }
+  await ripple.connect()
+  const prepared = await signer.preparePayment(payment)
+
+  consensus.addListener(betObj.destinationTag, 'multiSignForPendingRefund', async (i, txStr) => {
+    const txJSON = JSON.parse(txStr)
+    await signer.processTransaction(i, txJSON, betObj.destinationTag, 'refundPendingBet')
+  })
+  await consensus.collectMultisign(prepared, betObj.destinationTag, 'refundPendingBet')
+}
+async function monitorBets (consensus) {
   ripple.connect().then(async () => {
-    const account = await db.get('sharedWalletAddress')
+    const {address} = await db.get('sharedWalletAddress')
     ripple.connection.on('transaction', async (txObj) => {
       const transaction = txObj.transaction
-      try {
-        const txHash = transaction.hash
-        debug(`Received incoming transaction: ${JSON.stringify(transaction, null, 2)}`)
-        await db.addTransaction(txHash, transaction)
+      if (transaction.TransactionType === 'Payment' && transaction.Destination === address) {
+        try {
+          const txHash = transaction.hash
+          debug(`Received incoming transaction: ${JSON.stringify(transaction, null, 2)}`)
+          await db.addTransaction(txHash, transaction)
+          const betId = transaction.DestinationTag
+          debug(`validating bet ${betId}`)
+          // Add listeners for query and response of for this betId. Ask neighbours for pending Bet
+          consensus.addListener(betId, 'queryPendingBet', async (i, betId) => {
+            const pendingBet = await db.getPendingBet(betId)
+            if (!isEmpty(pendingBet)) {
+              consensus.sendInfoToPeer(betId, 'pendingBetResponse', i, JSON.stringify(pendingBet))
+            } else {
+              consensus.sendInfoToPeer(betId, 'pendingBetResponse', i, 'nothing')
+            }
+          })
 
-        const betId = transaction.DestinationTag
-        debug(`validating bet ${betId}`)
-        const pendingBet = await validateBet(betId)
+          consensus.addListener(betId, 'pendingBetResponse', async (i, betObj) => {
+            if (betObj !== 'nothing') {
+              // validate this bet
+              betObj = JSON.parse(betObj)
+              betObj.amount = Number(transaction.Amount)
+              betObj.address = transaction.Account
+              // Add listeners for bet Id
+              try {
+                consensus.addBetListeners(betObj.destinationTag)
+                const matchId = await consensus.validateInfo(betObj, 'validatingBetObj', 'firstValidateBetInfo', betId, `secondValidateBetInfo`, 'pendingBetChecked', betObj.matchId)
+                const match = await validateMatch({matchId})
+                consensus.addMatchListeners(matchId)
+                await consensus.validateInfo({matchId, destinationTag: matchId}, 'validatingMatchObj', 'firstValidateMatchInfo', matchId, `secondValidateMatchInfo`, 'matchChecked', true)
+                const dbMatch = await db.getMatch(matchId)
 
-        const matchId = pendingBet.matchId
-        debug(`validating details for match ${matchId}`)
-        const match = await validateMatch(matchId)
-        const dbMatch = await db.getMatch(matchId)
-        if (isEmpty(dbMatch)) {
-          await db.addMatch(matchId, match)
+                if (isEmpty(dbMatch)) {
+                  db.addMatch(matchId, match)
+                }
+                debug(`adding bet ${betObj.betId} to pool`)
+                const pendingBet = await db.getPendingBet(betObj.destinationTag)
+                if (!isEmpty(pendingBet)) {
+                  // remove bet
+                  db.removePendingBet(pendingBet.destinationTag)
+                }
+                const finalBet = {
+                  ...betObj,
+                  txHash: transaction.hash,
+                  createdAt: new Date()
+                }
+                debug('finalBet', finalBet)
+                await db.addBet(finalBet.destinationTag, finalBet)
+                if (finalBet.opposingBet) {
+                  const opposingBet = await db.getBet(finalBet.opposingBet)
+                  opposingBet.opposingBet = finalBet.destinationTag
+                  db.addBet(opposingBet.destinationTag, opposingBet)
+                }
+                debug(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
+                sendEmail({
+                  to: finalBet.email,
+                  subject: 'Successful bet submitted for betty',
+                  text: `Transaction succeeded. Your bet ${finalBet.destinationTag} has been added!`
+                })
+              } catch (err) {
+                console.log(err)
+                // Refund
+                await refundPendingBet(consensus, betObj, address, transaction)
+                sendEmail({
+                  to: betObj.email,
+                  subject: 'Error submitting bet to Betty',
+                  text: `Transaction failed. Error: ${err}. Please try to send the transaction again!`
+                })
+              }
+            }
+          })
+          consensus.sendInfoToPeers(betId, 'queryPendingBet', betId)
+        } catch (err) {
+          console.log(err)
+          const betId = transaction.DestinationTag
+          const pendingBet = await db.getPendingBet(betId)
+          if (!isEmpty(pendingBet)) {
+            // No Refund because an error means
+            sendEmail({
+              to: pendingBet.email,
+              subject: 'Error submitting bet to Betty',
+              text: `Transaction failed. Error: ${err}. Please try to send the transaction again!`
+            })
+          }
         }
-
-        debug(`adding bet ${betId} to pool`)
-        await db.removePendingBet(betId)
-        const finalBet = {
-          ...pendingBet,
-          txHash: transaction.txHash,
-          amount: transaction.Amount,
-          createdAt: new Date()
+      }
+      if (transaction.Account === address) {
+        const bet = await db.getBet(transaction.DestinationTag)
+        const pendingBet = await db.getPendingBet(transaction.DestinationTag)
+        if (!isEmpty(pendingBet)) {
+          const refund = Number(transaction.Amount) / 1000000
+          if (hex2a(transaction.Memos[0].Memo.MemoData) === 'refund') {
+            sendEmail({
+              to: pendingBet.email,
+              subject: 'Bet refunded!',
+              text: `Check your account. You should have been refunded ${refund} XRP.`
+            })
+          }
         }
-        await db.addBet(betId, finalBet)
-        debug(`bet ${betId} has been successfully added, bet: ${JSON.stringify(finalBet)}`)
-      } catch (err) {
-        console.log(err)
+        if (!isEmpty(bet)) {
+          const winnings = Number(bet.amount) * 2 / 1000000
+          if (hex2a(transaction.Memos[0].Memo.MemoData) === 'resolve') {
+            const newBet = {
+              ...bet,
+              status: 'resolved'
+            }
+            await db.addBet(newBet.destinationTag, newBet)
+            sendEmail({
+              to: bet.email,
+              subject: 'Successfully won bet!',
+              text: `Check your account. You should have won ${winnings} XRP sent from ${consensus.peerLength} running contracts.`
+            })
+          }
+          if (hex2a(transaction.Memos[0].Memo.MemoData) === 'refund') {
+            const newBet = {
+              ...bet,
+              status: 'refunded'
+            }
+            await db.addBet(newBet.destinationTag, newBet)
+            const refund = Number(bet.amount) / 1000000
+            sendEmail({
+              to: bet.email,
+              subject: 'Bet refunded!',
+              text: `Check your account. You should have been refunded ${refund} XRP from ${consensus.peerLength} running contracts`
+            })
+          }
+        }
       }
     })
 
     return ripple.connection.request({
       command: 'subscribe',
-      accounts: [ account ]
+      accounts: [ address ]
     })
   }).catch(console.error)
-}
-
-async function validateBet (betId) {
-  const bet = await db.getBet(betId)
-  if (!isEmpty(bet)) {
-    throw new Error(`Bet ${betId} has already been placed`)
-  }
-
-  const pendingBet = await db.getPendingBet(betId)
-  if (isEmpty(pendingBet)) {
-    throw new Error(`Bet ${betId} is not defined`)
-  }
-  debug(`Bet ${betId} is valid`)
-  return pendingBet
-}
-
-async function validateMatch (matchId) {
-  let match
-  const url = `${oracle}/game/${matchId}`
-  const response = await axios.get(url)
-  if (response.data === '') {
-    throw new Error(`Match ${matchId} does not exist`)
-  }
-
-  match = response.data
-  const matchTime = new Date(match.matchTime)
-  const now = new Date()
-  if (now >= matchTime) {
-    throw new Error(`Match ${matchId} has already started`)
-  }
-  debug(`Match ${matchId} is valid`)
-  return match
-}
-
-function isEmpty (obj) {
-  return Object.keys(obj).length === 0
 }
 
 module.exports = { monitorBets }

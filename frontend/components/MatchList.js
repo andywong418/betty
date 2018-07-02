@@ -13,13 +13,8 @@ class MatchList extends React.Component {
 
   showMatchToBet (match) {
     this.setState({
-      showModal: !this.state.showModal
-    }, () => {
-      if (this.state.showModal) {
-        this.setState(
-          { matchPicked: match }
-        )
-      }
+      showModal: !this.state.showModal,
+      matchPicked: match
     })
   }
 
@@ -32,12 +27,15 @@ class MatchList extends React.Component {
 
   render () {
     return (
-      <div className='container' style ={{marginTop: '20px'}}>
+      <div className='container' style ={{marginTop: '20px', minHeight: '400px'}}>
+        <h5 className='section-descriptor'> Matches to be played </h5>
+        <p className='section-description'> Place a new bet on matches that are yet to have played. The maximum is 1 XRP per match.</p>
         <div className='row'>
           {this.props.matchesNotPlayed.length > 0 ? this.props.matchesNotPlayed.slice(0, 12).map(match => {
             return (
               <div className='match-item-container col-4' key={match.id}>
                 <div className='match-item' key={match.team1 + match.team2}>
+                  <p><strong>{match.round}</strong></p>
                   <p>
                     <span>MatchTime: </span>
                     <span style={{color: '#2ecc71'}}> {dateTime(match.matchTime)}  </span>

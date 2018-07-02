@@ -1,0 +1,25 @@
+{
+  "manifest": {
+    "name": "betty",
+    "version": "1.0.0",
+    "machine": "small",
+    "containers": [{
+      "id": "app",
+      "image": "",
+      "command": ["/bin/sh"],
+      "workdir": "/root",
+      "environment": {
+        "PORT": "$PORT",
+        "SERVER_PORT": "$SERVER_PORT",
+        "ORACLE": "$ORACLE",
+        "CONTRACT_INSTANCES": "$CONTRACT_INSTANCES",
+        "USERNAME":"$USERNAME",
+        "BACKUP_URL":"BACKUP_URL",
+        "BACKUP_TOKEN":"BACKUP_TOKEN",
+        "EMAIL_PASS": "$EMAIL_PASS",
+        "EMAIL_FROM": "$EMAIL_FROM"
+      }
+    }],
+    "vars": {}
+  }
+}

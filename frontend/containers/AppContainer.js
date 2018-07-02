@@ -1,11 +1,12 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import { connect } from 'react-redux'
-import Title from '../components/Title'
 import Home from './Home'
+import Matches from './Matches'
+import Bets from './Bets'
+import Results from './Results'
 import { Route } from 'react-router-dom'
-import AnotherPage from '../components/AnotherPage'
-import {ConnectedRouter} from 'react-router-redux'
+import { ConnectedRouter } from 'react-router-redux'
 import {withRouter} from 'react-router'
 const HomeWrapper = ({name}) => {
   return (
@@ -16,7 +17,9 @@ const App = ({ name }) => {
   return (
     <div>
       <Route exact path='/' component={HomeWrapper} />
-      <Route path='/anotherPage' component={AnotherPage} />
+      <Route path='/bets' component={Bets} />
+      <Route path='/matches' component={Matches} />
+      <Route path ='/results' component={Results} />
     </div>
   )
 }

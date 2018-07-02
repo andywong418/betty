@@ -15,7 +15,7 @@ class ErrorMessage extends React.Component {
 
   render () {
     return (
-      <div>
+      <div style={{paddingLeft: '15px'}}>
         <p> {this.state.errorMessage} </p>
       </div>
     )
