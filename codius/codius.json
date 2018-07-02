@@ -18,7 +18,8 @@
         "BACKUP_TOKEN":"$BACKUP_TOKEN",
         "EMAIL_PASS": "$EMAIL_PASS",
         "EMAIL_FROM": "$EMAIL_FROM",
-        "EMAIL_SERVICE": "$EMAIL_SERVICE"
+        "EMAIL_SERVICE": "$EMAIL_SERVICE",
+        "WEB_SOCKET": "$WEB_SOCKET"
       }
     }]
   }
