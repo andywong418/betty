@@ -163,7 +163,7 @@ class BasicConsensus {
       modes,
       maxCount
     }
-  } 
+  }
   async collectMultisign (txJson, betId, purpose) {
     const signProm = new Promise((resolve, reject) => {
       // this.multisignObj[betId] = {

@@ -6,7 +6,7 @@ import Matches from './Matches'
 import Bets from './Bets'
 import Results from './Results'
 import { Route } from 'react-router-dom'
-import {ConnectedRouter} from 'react-router-redux'
+import { ConnectedRouter } from 'react-router-redux'
 import {withRouter} from 'react-router'
 const HomeWrapper = ({name}) => {
   return (

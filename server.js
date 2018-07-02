@@ -76,22 +76,22 @@ wss.on('connection', ws => {
 async function startMonitoring () {
   if (!rippleStarted) {
     const multiSignAddr = await BettyDB.get('sharedWalletAddress')
-    await BettyDB.set('pendingBets', {})
-    const bet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'France', matchId: 49,
-      email: 'androswong418@gmail.com', name: 'Vernon', destinationTag: 688897978, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa',
-      opposingBet: 898312839 }
-    const opposingBet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'Argentina', matchId: 49,
-      email: 'androswong418@gmail.com', name: 'Jon', destinationTag: 898312839, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa',
-      opposingBet: 688897978 }
-    const refundBet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'France', matchId: 49,
-      email: 'androswong418@gmail.com', name: 'Dros', destinationTag: 688897980, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa'
-    }
-    await BettyDB.addBet(688897978, bet)
-    await BettyDB.addBet(898312839, opposingBet)
-    await BettyDB.addBet(688897980, refundBet)
+    // await BettyDB.set('pendingBets', {})
+    // const bet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'France', matchId: 49,
+    //   email: 'androswong418@gmail.com', name: 'Vernon', destinationTag: 688897978, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa',
+    //   opposingBet: 898312839 }
+    // const opposingBet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'Argentina', matchId: 49,
+    //   email: 'androswong418@gmail.com', name: 'Jon', destinationTag: 898312839, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa',
+    //   opposingBet: 688897978 }
+    // const refundBet = { address: 'rDiFp1uRY2uYR8jJyWQzPs17oaZJ5wCirz', bettingTeam: 'France', matchId: 49,
+    //   email: 'androswong418@gmail.com', name: 'Dros', destinationTag: 688897980, amount: '10000', txHash: 'asdfasdfa', createdAt: 'asdfadsfa'
+    // }
+    // await BettyDB.addBet(688897978, bet)
+    // await BettyDB.addBet(898312839, opposingBet)
+    // await BettyDB.addBet(688897980, refundBet)
 
-    const bets = await BettyDB.getAllBets()
-    console.log('bets', bets)
+    // const bets = await BettyDB.getAllBets()
+    // console.log('bets', bets)
     if (multiSignAddr) {
       monitorBets(consensus)
       backgroundPayOut(consensus)
