@@ -180,7 +180,8 @@ class BasicConsensus {
   async loadListeners () {
     const bets = await this.db.getAllBets()
     const matches = await this.db.getAllMatches()
-
+    console.log('loading Listeners')
+    console.log('bets', bets)
     for (let key in bets) {
       const bet = bets[key]
       this.addBetListeners(bet.destinationTag)

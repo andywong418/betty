@@ -63,7 +63,6 @@ async function validateBet (bet) {
   }
   const checkBet = await db.get(bet.destinationTag)
   if (!isEmpty(checkBet)) {
-    console.log('here?')
     console.log(`Bet ${bet.destinationTag} has already been placed`)
     return false
   }

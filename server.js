@@ -84,6 +84,7 @@ async function startMonitoring () {
     // opposingBet: 688897978 }
     // await BettyDB.addBet(688897978, bet)
     // await BettyDB.addBet(898312839, opposingBet)
+    await BettyDB.set('bets', {})
     const bets = await BettyDB.getAllBets()
     console.log('bets', bets)
     if (multiSignAddr) {

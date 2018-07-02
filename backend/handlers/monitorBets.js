@@ -20,7 +20,6 @@ async function monitorBets (consensus) {
     const {address} = await db.get('sharedWalletAddress')
     ripple.connection.on('transaction', async (txObj) => {
       const transaction = txObj.transaction
-      console.log('transaction?', transaction)
       if (transaction.TransactionType === 'Payment' && transaction.Destination === address) {
         try {
           const txHash = transaction.hash
@@ -72,7 +71,7 @@ async function monitorBets (consensus) {
                 debug('finalBet', finalBet)
                 await db.addBet(finalBet.destinationTag, finalBet)
                 if (finalBet.opposingBet) {
-                  const opposingBet = db.getBet(finalBet.opposingBet)
+                  const opposingBet = await db.getBet(finalBet.opposingBet)
                   opposingBet.opposingBet = finalBet.destinationTag
                   db.addBet(opposingBet.destinationTag, opposingBet)
                 }
@@ -84,10 +83,12 @@ async function monitorBets (consensus) {
                 })
               } catch (err) {
                 console.log(err)
+                // Refund
+
                 sendEmail({
                   to: betObj.email,
                   subject: 'Error submitting bet to Betty',
-                  text: `Transaction failed. Error: ${err}`
+                  text: `Transaction failed. Error: ${err}. Please try to send the transaction again!`
                 })
               }
             }
@@ -98,6 +99,7 @@ async function monitorBets (consensus) {
           const betId = transaction.DestinationTag
           const pendingBet = await db.getPendingBet(betId)
           if (!isEmpty(pendingBet)) {
+            // Refund
             sendEmail({
               to: pendingBet.email,
               subject: 'Error submitting bet to Betty',

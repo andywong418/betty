@@ -61,9 +61,7 @@ async function startConsensus (consensus) {
         }
         await ripple.connect()
         const prepared = await signer.preparePayment(payment)
-        const signedTransaction = await consensus.collectMultisign(prepared, ripple, bet.destinationTag)
-        console.log('signedTransaction', signedTransaction)
-        console.log('result final', result)
+        await consensus.collectMultisign(prepared, ripple, bet.destinationTag)
       } catch (err) {
         console.error(err)
       }
@@ -98,15 +96,7 @@ async function startConsensus (consensus) {
         }
         await ripple.connect()
         const prepared = await signer.preparePayment(payment)
-        const signedTransaction = await consensus.collectMultisign(prepared, ripple, bet.destinationTag)
-        const result = await ripple.submit(signedTransaction)
-        if (result) {
-          const newBet = {
-            ...bet,
-            status: 'refunded'
-          }
-          await db.addBet(newBet.destinationTag, newBet)
-        }
+        await consensus.collectMultisign(prepared, ripple, bet.destinationTag)
       } catch (err) {
         console.error(err)
       }
