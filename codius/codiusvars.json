@@ -1,10 +1,45 @@
 {
   "public": {
     "PORT": {
-      "value": 3000
+      "value": "3001",
+      "description": "Port to establish web sockets connection for host consensus"
+    },
+    "WEB_SOCKET": {
+      "value": "5005"
+    },
+    "CONTRACT_INSTANCES": {
+      "value": "[]"
+    },
+    "SERVER_PORT": {
+      "value": "3003"
+    },
+    "USERNAME": {
+      "value": "host1",
+      "description": "Identifier for Codius host"
+    },
+    "ORACLE": {
+      "value": "https://world-cup-api-2018.herokuapp.com",
+      "description": "Oracle URL for retrieiving match information"
+    },
+    "BACKUP_URL": {
+      "value": "<BACKUP_URL>",
+      "description": "URL to send backup information for bets"
+    },
+
+    "EMAIL_SERVICE": {
+      "value": "<EMAIL_SERVICE>",
+      "description": "Email service for sending bet notifications e.g., gmail"
     }
   },
   "private": {
-    "User"
+    "BACKUP_TOKEN": {
+      "value": "<BACKUP_TOKEN>"
+    },
+    "EMAIL_FROM": {
+      "value": "<EMAIL_FROM>"
+    },
+    "EMAIL_PASS": {
+      "value": "<EMAIL_PASS>"
+    }
   }
 }
