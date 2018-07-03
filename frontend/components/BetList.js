@@ -1,6 +1,6 @@
 import React from 'react'
 import BetModal from './BetModal'
-import {Link} from 'react-router-dom'
+import { Link } from 'react-router-dom'
 class BetList extends React.Component {
   constructor (props) {
     super(props)

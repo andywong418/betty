@@ -1,6 +1,6 @@
 import React from 'react'
 import { connect } from 'react-redux'
-import ResultList from '../components/Resultlist'
+import ResultList from '../components/ResultList'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
 import { getMatches } from '../actions/index'
