@@ -16,8 +16,8 @@ const debug = require('debug')('betty:server')
 
 // Put logic for host key gen in here.
 
-const rippleAPI = new RippleAPI({server: 'wss://s.altnet.rippletest.net:51233'})
-// Change to wss://s1.ripple.com:443 for production
+const rippleAPI = new RippleAPI({server: 'wss://s1.ripple.com:443'})
+// Change to wss://s1.ripple.com:443:443 for production
 let rippleStarted = false
 wss.on('connection', ws => {
   ws.on('message', async message => {

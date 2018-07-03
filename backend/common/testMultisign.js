@@ -1,6 +1,6 @@
 const { multisign } = require('./multisign.js')
 const RippleAPI = require('ripple-lib').RippleAPI
-const rippleServer = 'wss://s.altnet.rippletest.net:51233' // public rippled testnet server
+const rippleServer = 'wss://s1.ripple.com:443' // public rippled testnet server
 const ripple = new RippleAPI({ server: rippleServer })
 const db = require('../common/BettyDB.js')
 const debug = require('debug')('betty:testMultisign')

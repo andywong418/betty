@@ -5,7 +5,7 @@ const oracle = process.env.ORACLE
 const Multisign = require('../common/MultisignClass.js')
 const RippleAPI = require('ripple-lib').RippleAPI
 const ripple = new RippleAPI({
-  server: 'wss://s.altnet.rippletest.net:51233' // Public rippled server
+  server: 'wss://s1.ripple.com:443' // Public rippled server
 })
 const broker = require('../common/broker.js')
 const signer = new Multisign(broker, ripple)
